@@ -1,0 +1,239 @@
+{
+  "name": "C21 - WF1 Receptor Asaas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c21-asaas",
+        "options": {}
+      },
+      "id": "90f244b7-8ce9-4ea3-9f9b-e14b529eda49",
+      "name": "Webhook Asaas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1376,
+        96
+      ],
+      "webhookId": "c21-asaas"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Token de webhook invalido"
+      },
+      "id": "ccf0fa67-b4ee-4e41-a44a-72590c268e87",
+      "name": "Recusar",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kyjakkvbobmjgkhqdfjx.supabase.co/rest/v1/webhook_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "SUBSTITUA_PELA_SECRET_DO_SUPABASE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer SUBSTITUA_PELA_SECRET_DO_SUPABASE"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ asaas_event_id: $json.body.id, tipo: $json.body.event, payload: $json.body }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "32b5f837-4a08-4d50-9c60-ee05c7197bcb",
+      "name": "Gravar evento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -896,
+        -16
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "id": "d9a83ff1-e9a3-4025-9c0d-fc9e072165cf",
+      "name": "Repetido - ignorar",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "55cf41e3-7a7e-40a5-abd7-fd2cd297ceca",
+      "name": "Evento novo - continua aqui",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c6072e43-a113-4a06-8e04-7099fcfa385a",
+              "leftValue": "={{ $json.headers['asaas-access-token'] }}",
+              "rightValue": "SUBSTITUA_PELO_C21_WEBHOOK_TOKEN",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1136,
+        112
+      ],
+      "id": "8777923f-49c4-4201-aac9-aba3eacf989d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "12d006ac-ba90-4ef9-b5dd-cf8a84662a3b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -624,
+        0
+      ],
+      "id": "c5e29361-b17d-4890-9ff8-c9323b7dc9b6",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Asaas": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar evento": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Gravar evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Recusar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Repetido - ignorar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Evento novo - continua aqui",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "bb3eda37-22fd-4167-b279-d56e3620db43",
+  "meta": {
+    "instanceId": "cc54387938b39f37d15720f7a8ad20848e21dd945a4c838681995a69b3cc8052"
+  },
+  "id": "dJGlnKEehQbEA4wr",
+  "tags": []
+}
