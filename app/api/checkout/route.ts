@@ -42,10 +42,14 @@ type EntradaValida = {
   pessoais: Pessoais;
   endereco: Endereco;
   refCode: string | null;
+  afiliadaId: string | null;
 };
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const digitos = (v: unknown): string => texto(v).replace(/\D/g, "");
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validarEntrada(
   corpo: unknown,
@@ -89,6 +93,10 @@ function validarEntrada(
   if (refCode && refCode.length > 40)
     erros.ref_code = "Código de indicação inválido";
 
+  const afiliadaId = texto(b.afiliada_id) || null;
+  if (afiliadaId && !UUID_RE.test(afiliadaId))
+    erros.afiliada_id = "Afiliada inválida";
+
   if (Object.keys(erros).length > 0) return { erros };
 
   return {
@@ -108,6 +116,7 @@ function validarEntrada(
         ponto_referencia: texto(b.ponto_referencia) || null,
       },
       refCode,
+      afiliadaId,
     },
   };
 }
@@ -178,7 +187,8 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { plano, ciclo, pessoais, endereco, refCode } = validado.dados;
+  const { plano, ciclo, pessoais, endereco, refCode, afiliadaId } =
+    validado.dados;
 
   const supabase = createServiceClient();
 
@@ -234,6 +244,7 @@ export async function POST(request: Request) {
     pessoais,
     endereco,
     ref_code: refCode,
+    afiliada_id: afiliadaId,
     valor,
   };
 
@@ -244,6 +255,7 @@ export async function POST(request: Request) {
       ciclo,
       tipo: planoRow.tipo ?? "assinatura",
       ref_code: refCode,
+      afiliado_id: afiliadaId,
       status: "iniciado",
       dados_json: dadosJson,
     })
