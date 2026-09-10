@@ -1,13 +1,6 @@
-import FormAssinatura from "./FormAssinatura";
+import { paramTexto } from "@/lib/searchParams";
 
-function paramTexto(
-  params: { [key: string]: string | string[] | undefined },
-  chave: string,
-): string | null {
-  const v = params[chave];
-  const valor = Array.isArray(v) ? v[0] : v;
-  return valor ? valor : null;
-}
+import FormAssinatura from "./FormAssinatura";
 
 export default async function AssinarPage({
   searchParams,

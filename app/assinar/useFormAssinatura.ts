@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { formatarValor } from "@/lib/formatacao";
 import {
   apenasDigitos,
   formatarCEP,
@@ -9,6 +10,8 @@ import {
   formatarTelefone,
   validarCPF,
 } from "@/lib/validacao";
+
+export { formatarValor };
 
 export type Plano = {
   slug: string;
@@ -58,15 +61,6 @@ const CAMPOS_INICIAIS = (refInicial: string | null): CamposForm => ({
 });
 
 type CepStatus = "ocioso" | "carregando" | "ok" | "erro";
-
-const formatador = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-export function formatarValor(valor: number): string {
-  return formatador.format(valor);
-}
 
 function validarCampos(
   campos: CamposForm,
