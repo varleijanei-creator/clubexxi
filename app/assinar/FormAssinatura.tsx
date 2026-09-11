@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { PAISES } from "@/lib/paises";
@@ -403,6 +404,19 @@ export default function FormAssinatura({
           erro={f.erros.ponto_referencia}
         />
       </section>
+
+      <p className="text-xs text-zinc-500">
+        Ao assinar, você concorda com a nossa{" "}
+        <Link
+          href="/privacidade"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Política de Privacidade
+        </Link>
+        .
+      </p>
 
       <Botao tipo="submit" desabilitado={f.enviando}>
         {f.enviando ? "Enviando…" : "Continuar para pagamento"}
