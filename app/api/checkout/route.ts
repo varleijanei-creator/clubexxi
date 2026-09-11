@@ -149,11 +149,19 @@ function cepAsaas(cep: string): string {
   return cep.replace(/\D/g, "");
 }
 
-/** Primeiro vencimento da assinatura: amanhã (YYYY-MM-DD). */
+/**
+ * Primeiro vencimento da assinatura: hoje, no fuso America/Sao_Paulo
+ * (YYYY-MM-DD). Não usar a data UTC do servidor — depois das 21h ela já
+ * virou o dia seguinte no Brasil, o que empurrava a primeira cobrança pra
+ * amanhã.
+ */
 function proximoVencimento(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 // -------------------------------------------------------------------------
