@@ -165,6 +165,20 @@ function cepAsaas(cep: string): string {
 }
 
 /**
+ * CEP fixo (Av. Paulista) usado no cadastro do cliente no Asaas quando o
+ * endereço de entrega é fora do Brasil. Testado direto no sandbox: postalCode
+ * é obrigatório em customerData e é validado contra a base real dos Correios
+ * — nem um CEP de 8 dígitos inventado passa ("O campo postalCode é
+ * inválido"), e não existe campo de país. `city` enviado à parte também é
+ * ignorado (Asaas sempre deriva a cidade a partir do postalCode). Não tem
+ * como representar um endereço internacional de verdade nesse campo; o
+ * endereço real de entrega continua correto em pedidos.dados_json/enderecos,
+ * que é o que importa pra remessa da carta. Sem efeito em nota fiscal — está
+ * desligada (config_fiscal.ativo = false).
+ */
+const CEP_ASAAS_INTERNACIONAL = "01310100";
+
+/**
  * Primeiro vencimento da assinatura: hoje, no fuso America/Sao_Paulo
  * (YYYY-MM-DD). Não usar a data UTC do servidor — depois das 21h ela já
  * virou o dia seguinte no Brasil, o que empurrava a primeira cobrança pra
@@ -295,6 +309,7 @@ export async function POST(request: Request) {
 
   // 2) Cria o checkout no Asaas. externalReference amarra o retorno ao pedido.
   const base = siteUrl(request);
+  const ehBrasil = endereco.pais === "BR";
   const payload = {
     billingTypes: BILLING_TYPES,
     chargeTypes: ["RECURRENT"],
@@ -315,10 +330,13 @@ export async function POST(request: Request) {
     ],
     // customerData do POST /v3/checkouts (schema CheckoutSessionCustomerDataDTO).
     // Campos: name, cpfCnpj, email, phone, address, addressNumber, complement,
-    // province, postalCode, city. Não existe mobilePhone aqui.
+    // province, postalCode. Não existe mobilePhone nem country aqui.
     // - phone: só dígitos, sem máscara (ex. do schema: "4738010919").
-    // - postalCode: 8 dígitos, sem máscara. O Asaas valida o CEP contra base
-    //   dos Correios; CEP genérico de cidade (final -000) pode ser recusado.
+    // - postalCode: 8 dígitos, sem máscara, obrigatório e validado contra a
+    //   base dos Correios (CEP genérico de cidade, final -000, é recusado).
+    //   Pra fora do Brasil não tem CEP real pra mandar — usa o placeholder
+    //   fixo CEP_ASAAS_INTERNACIONAL. O endereço de entrega de verdade está
+    //   em pedidos.dados_json/enderecos, não aqui.
     customerData: {
       name: pessoais.nome,
       email: pessoais.email,
@@ -328,7 +346,7 @@ export async function POST(request: Request) {
       addressNumber: endereco.numero,
       complement: endereco.complemento ?? undefined,
       province: endereco.bairro,
-      postalCode: cepAsaas(endereco.cep),
+      postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
     },
     subscription: {
       cycle: ciclo,
