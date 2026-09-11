@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { formatarValor } from "@/lib/formatacao";
+import { PAIS_PADRAO } from "@/lib/paises";
 import {
   apenasDigitos,
   formatarCEP,
@@ -31,6 +32,7 @@ export type CamposForm = {
   email: string;
   cpf: string;
   telefone: string;
+  pais: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -48,6 +50,7 @@ const CAMPOS_INICIAIS = (refInicial: string | null): CamposForm => ({
   email: "",
   cpf: "",
   telefone: "",
+  pais: PAIS_PADRAO,
   cep: "",
   logradouro: "",
   numero: "",
@@ -80,16 +83,29 @@ function validarCampos(
   if (telefone.length < 10 || telefone.length > 11)
     erros.telefone = "Telefone inválido (DDD + número)";
 
-  const cep = apenasDigitos(campos.cep);
-  if (cep.length !== 8) erros.cep = "CEP deve ter 8 dígitos";
-  else if (cepGenerico)
-    erros.cep = "Esse CEP é o geral da cidade. Informe o CEP da sua rua";
+  const ehBrasil = campos.pais === "BR";
+
+  if (ehBrasil) {
+    const cep = apenasDigitos(campos.cep);
+    if (cep.length !== 8) erros.cep = "CEP deve ter 8 dígitos";
+    else if (cepGenerico)
+      erros.cep = "Esse CEP é o geral da cidade. Informe o CEP da sua rua";
+  } else {
+    const cep = campos.cep.trim();
+    if (cep.length < 3 || cep.length > 12)
+      erros.cep = "Código postal deve ter de 3 a 12 caracteres";
+  }
 
   if (!campos.logradouro.trim()) erros.logradouro = "Informe o logradouro";
   if (!campos.numero.trim()) erros.numero = "Informe o número";
   if (!campos.bairro.trim()) erros.bairro = "Informe o bairro";
   if (!campos.cidade.trim()) erros.cidade = "Informe a cidade";
-  if (!/^[A-Za-z]{2}$/.test(campos.uf.trim())) erros.uf = "UF inválida";
+
+  if (ehBrasil) {
+    if (!/^[A-Za-z]{2}$/.test(campos.uf.trim())) erros.uf = "UF inválida";
+  } else if (!campos.uf.trim()) {
+    erros.uf = "Informe o estado ou região";
+  }
 
   return erros;
 }
@@ -124,6 +140,8 @@ export function useFormAssinatura(
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const ehBrasil = campos.pais === "BR";
 
   // Planos — nenhum preço fixo no código, tudo vem de /api/planos.
   useEffect(() => {
@@ -219,7 +237,30 @@ export function useFormAssinatura(
     atualizarCampo("telefone", formatarTelefone(valor));
   }
 
+  function atualizarPais(codigo: string) {
+    atualizarCampo("pais", codigo);
+    // A busca automática e o formato de CEP/UF só valem pro Brasil — troca
+    // de país zera esse estado pra não ficar preso a uma regra que não vale
+    // mais.
+    setCepStatus("ocioso");
+    setCepMensagem(null);
+    setCepGenerico(false);
+    setEnderecoBloqueado(false);
+    limparErroChave("cep");
+    limparErroChave("uf");
+  }
+
+  function atualizarUf(valor: string) {
+    atualizarCampo("uf", ehBrasil ? valor.toUpperCase() : valor);
+  }
+
   async function atualizarCEP(valor: string) {
+    if (!ehBrasil) {
+      // Código postal de fora do Brasil: texto livre, sem busca automática.
+      atualizarCampo("cep", valor.slice(0, 12));
+      return;
+    }
+
     const formatado = formatarCEP(valor);
     setCampos((atual) => ({ ...atual, cep: formatado }));
     limparErroCampo("cep");
@@ -289,6 +330,7 @@ export function useFormAssinatura(
       "email",
       "cpf",
       "telefone",
+      "pais",
       "cep",
       "logradouro",
       "numero",
@@ -334,14 +376,14 @@ export function useFormAssinatura(
           email: campos.email.trim(),
           cpf: apenasDigitos(campos.cpf),
           telefone: apenasDigitos(campos.telefone),
-          cep: apenasDigitos(campos.cep),
+          cep: ehBrasil ? apenasDigitos(campos.cep) : campos.cep.trim(),
           logradouro: campos.logradouro.trim(),
           numero: campos.numero.trim(),
           complemento: campos.complemento.trim() || undefined,
           bairro: campos.bairro.trim(),
           cidade: campos.cidade.trim(),
-          uf: campos.uf.trim().toUpperCase(),
-          pais: "BR",
+          uf: ehBrasil ? campos.uf.trim().toUpperCase() : campos.uf.trim(),
+          pais: campos.pais,
           ponto_referencia: campos.ponto_referencia.trim() || undefined,
           ref_code: campos.ref_code.trim() || undefined,
           afiliada_id: campos.afiliada_id || undefined,
@@ -387,9 +429,12 @@ export function useFormAssinatura(
     afiliadas,
 
     campos,
+    ehBrasil,
     atualizarCampo,
     atualizarCPF,
     atualizarTelefone,
+    atualizarPais,
+    atualizarUf,
     atualizarCEP,
 
     mostrarCampoIndicacao,

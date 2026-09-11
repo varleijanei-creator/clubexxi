@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { PAISES } from "@/lib/paises";
+
 import { formatarValor, useFormAssinatura } from "./useFormAssinatura";
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,8 @@ function Select({
   opcoes,
   ajuda,
   erro,
+  obrigatorio,
+  comOpcaoVazia = true,
 }: {
   id: string;
   label: string;
@@ -82,11 +86,14 @@ function Select({
   opcoes: { value: string; label: string }[];
   ajuda?: string;
   erro?: string;
+  obrigatorio?: boolean;
+  comOpcaoVazia?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-medium text-zinc-800">
         {label}
+        {obrigatorio && <span className="text-red-600"> *</span>}
       </label>
       <select
         id={id}
@@ -97,7 +104,7 @@ function Select({
           erro ? "border-red-500" : "border-zinc-300"
         }`}
       >
-        <option value=""></option>
+        {comOpcaoVazia && <option value=""></option>}
         {opcoes.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -312,15 +319,25 @@ export default function FormAssinatura({
         <h2 className="text-sm font-semibold text-zinc-900">
           Endereço de entrega
         </h2>
+        <Select
+          id="pais"
+          label="País"
+          value={f.campos.pais}
+          onChange={f.atualizarPais}
+          opcoes={PAISES.map((p) => ({ value: p.codigo, label: p.nome }))}
+          erro={f.erros.pais}
+          obrigatorio
+          comOpcaoVazia={false}
+        />
         <Campo
           id="cep"
-          label="CEP"
+          label={f.ehBrasil ? "CEP" : "Código postal"}
           value={f.campos.cep}
           onChange={f.atualizarCEP}
           erro={f.erros.cep ?? (f.cepStatus === "erro" ? f.cepMensagem ?? undefined : undefined)}
           obrigatorio
-          placeholder="00000-000"
-          inputMode="numeric"
+          placeholder={f.ehBrasil ? "00000-000" : "Postal code"}
+          inputMode={f.ehBrasil ? "numeric" : "text"}
           ajuda={f.cepStatus === "carregando" ? "Buscando CEP…" : undefined}
         />
         <Campo
@@ -370,9 +387,9 @@ export default function FormAssinatura({
           />
           <Campo
             id="uf"
-            label="UF"
+            label={f.ehBrasil ? "UF" : "Estado / Região"}
             value={f.campos.uf}
-            onChange={(v) => f.atualizarCampo("uf", v.toUpperCase())}
+            onChange={f.atualizarUf}
             erro={f.erros.uf}
             obrigatorio
             readOnly={f.enderecoBloqueado}

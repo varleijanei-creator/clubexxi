@@ -75,19 +75,34 @@ function validarEntrada(
   if (telefone.length < 10 || telefone.length > 11)
     erros.telefone = "Telefone inválido (DDD + número)";
 
-  const cep = digitos(b.cep);
+  // País: BR mantém as regras brasileiras (CEP de 8 dígitos, UF de 2 letras);
+  // qualquer outro país vira texto livre pro CEP/UF, já que não tem como
+  // validar formato de endereço de fora do Brasil aqui.
+  const pais = (texto(b.pais) || "BR").toUpperCase();
+  if (!/^[A-Z]{2}$/.test(pais)) erros.pais = "País inválido";
+  const ehBrasil = pais === "BR";
+
+  const cep = ehBrasil ? digitos(b.cep) : texto(b.cep);
   const logradouro = texto(b.logradouro);
   const numero = texto(b.numero);
   const bairro = texto(b.bairro);
   const cidade = texto(b.cidade);
-  const uf = texto(b.uf).toUpperCase();
+  const uf = ehBrasil ? texto(b.uf).toUpperCase() : texto(b.uf);
 
-  if (cep.length !== 8) erros.cep = "CEP deve ter 8 dígitos";
+  if (ehBrasil) {
+    if (cep.length !== 8) erros.cep = "CEP deve ter 8 dígitos";
+  } else if (cep.length < 3 || cep.length > 12) {
+    erros.cep = "Código postal deve ter de 3 a 12 caracteres";
+  }
   if (!logradouro) erros.logradouro = "Informe o logradouro";
   if (!numero) erros.numero = "Informe o número";
   if (!bairro) erros.bairro = "Informe o bairro";
   if (!cidade) erros.cidade = "Informe a cidade";
-  if (!/^[A-Z]{2}$/.test(uf)) erros.uf = "UF inválida";
+  if (ehBrasil) {
+    if (!/^[A-Z]{2}$/.test(uf)) erros.uf = "UF inválida";
+  } else if (!uf) {
+    erros.uf = "Informe o estado ou região";
+  }
 
   const refCode = texto(b.ref_code) || null;
   if (refCode && refCode.length > 40)
@@ -112,7 +127,7 @@ function validarEntrada(
         bairro,
         cidade,
         uf,
-        pais: texto(b.pais) || "BR",
+        pais,
         ponto_referencia: texto(b.ponto_referencia) || null,
       },
       refCode,
