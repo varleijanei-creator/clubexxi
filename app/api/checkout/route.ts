@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { AsaasError, criarCheckout } from "@/lib/asaas";
+import { ACRESCIMO_INTERNACIONAL } from "@/lib/precos";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-// Hoje só existe cobrança mensal. 3/6/12 meses entram depois.
-const CICLOS_VALIDOS = ["MONTHLY"];
 
 // Asaas só aceita CREDIT_CARD quando chargeTypes = RECURRENT (PIX exigiria
 // chargeType DETACHED, que não renova). Bate com a decisão do projeto:
@@ -38,7 +36,6 @@ type Endereco = {
 
 type EntradaValida = {
   plano: string;
-  ciclo: string;
   pessoais: Pessoais;
   endereco: Endereco;
   refCode: string | null;
@@ -60,9 +57,6 @@ function validarEntrada(
 
   const plano = texto(b.plano);
   if (!plano) erros.plano = "Selecione um plano";
-
-  const ciclo = texto(b.ciclo) || "MONTHLY";
-  if (!CICLOS_VALIDOS.includes(ciclo)) erros.ciclo = "Ciclo indisponível";
 
   const nome = texto(b.nome);
   const email = texto(b.email).toLowerCase();
@@ -117,7 +111,6 @@ function validarEntrada(
   return {
     dados: {
       plano,
-      ciclo,
       pessoais: { nome, email, cpf, telefone },
       endereco: {
         cep,
@@ -224,15 +217,18 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { plano, ciclo, pessoais, endereco, refCode, afiliadaId } =
-    validado.dados;
+  const { plano, pessoais, endereco, refCode, afiliadaId } = validado.dados;
+  const ehBrasil = endereco.pais === "BR";
 
   const supabase = createServiceClient();
 
-  // Plano + preço vêm do banco. Nada de valor fixo no código.
+  // Plano + preço + ciclo vêm do banco. Cada combinação plano+ciclo é sua
+  // própria linha em `planos` (ex. "pessego-trimestral"), já com o valor
+  // certo — nada de valor fixo no código, e não confia no que o cliente
+  // mandar pra ciclo (ele nem manda: o ciclo é o do plano escolhido).
   const { data: planoRow, error: planoErr } = await supabase
     .from("planos")
-    .select("slug, nome, tipo, valor, ativo")
+    .select("slug, nome, tipo, valor, ativo, ciclo")
     .eq("slug", plano)
     .maybeSingle();
 
@@ -251,30 +247,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: precoRow, error: precoErr } = await supabase
-    .from("planos_precos")
-    .select("valor, ciclo, meses, ativo")
-    .eq("plano_slug", plano)
-    .eq("ciclo", ciclo)
-    .eq("ativo", true)
-    .maybeSingle();
-
-  if (precoErr) {
-    console.error("[checkout] erro ao buscar preço", precoErr);
-    return NextResponse.json(
-      { error: "Erro ao consultar o preço do plano." },
-      { status: 500 },
-    );
-  }
-
-  const valor = Number(precoRow?.valor ?? planoRow.valor);
-  if (!Number.isFinite(valor) || valor <= 0) {
-    console.error("[checkout] preço não configurado", { plano, ciclo });
+  const valorBase = Number(planoRow.valor);
+  if (!Number.isFinite(valorBase) || valorBase <= 0) {
+    console.error("[checkout] preço não configurado", { plano });
     return NextResponse.json(
       { error: "Preço do plano não configurado." },
       { status: 500 },
     );
   }
+
+  // Endereço fora do Brasil soma um acréscimo fixo, mensal ou trimestral —
+  // é esse valor (não o do plano puro) que é gravado e cobrado.
+  const valor = valorBase + (ehBrasil ? 0 : ACRESCIMO_INTERNACIONAL);
+
+  // mensal -> MONTHLY, trimestral -> QUARTERLY. Errar isso cobra R$ 180 e
+  // recobra em 30 dias, então vem sempre do plano, nunca do cliente.
+  const cicloAsaas = planoRow.ciclo === "trimestral" ? "QUARTERLY" : "MONTHLY";
 
   // 1) Grava o pedido com status 'iniciado' (service role, ignora RLS).
   const dadosJson = {
@@ -289,7 +277,7 @@ export async function POST(request: Request) {
     .from("pedidos")
     .insert({
       plano_slug: plano,
-      ciclo,
+      ciclo: cicloAsaas,
       tipo: planoRow.tipo ?? "assinatura",
       ref_code: refCode,
       afiliado_id: afiliadaId,
@@ -309,7 +297,6 @@ export async function POST(request: Request) {
 
   // 2) Cria o checkout no Asaas. externalReference amarra o retorno ao pedido.
   const base = siteUrl(request);
-  const ehBrasil = endereco.pais === "BR";
   const payload = {
     billingTypes: BILLING_TYPES,
     chargeTypes: ["RECURRENT"],
@@ -323,7 +310,9 @@ export async function POST(request: Request) {
     items: [
       {
         name: planoRow.nome,
-        description: `Assinatura ${planoRow.nome} — cobrança mensal`,
+        description: `Assinatura ${planoRow.nome} — cobrança ${
+          planoRow.ciclo === "trimestral" ? "trimestral" : "mensal"
+        }`,
         quantity: 1,
         value: valor,
       },
@@ -349,7 +338,7 @@ export async function POST(request: Request) {
       postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
     },
     subscription: {
-      cycle: ciclo,
+      cycle: cicloAsaas,
       nextDueDate: proximoVencimento(),
     },
   };

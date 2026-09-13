@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { formatarValor } from "@/lib/formatacao";
 import { PAIS_PADRAO } from "@/lib/paises";
+import { ACRESCIMO_INTERNACIONAL } from "@/lib/precos";
 import {
   apenasDigitos,
   formatarCEP,
@@ -20,12 +21,29 @@ export type Plano = {
   tipo: string;
   valor: number;
   ciclo: string;
+  meses: number;
+  familia: string | null;
+  ordem: number;
+  descricao: string | null;
 };
 
 export type Afiliada = {
   id: string;
   nome: string;
 };
+
+export type UpsellInfo = {
+  mensal: Plano;
+  trimestral: Plano;
+  valorMensalEquivalente: number;
+  economia: number;
+};
+
+/** Preço do plano formatado conforme o ciclo — nunca o valor trimestral sozinho. */
+export function formatarPrecoCiclo(ciclo: string, valor: number): string {
+  if (ciclo === "trimestral") return `${formatarValor(valor)} a cada 3 meses`;
+  return `${formatarValor(valor)}/mês`;
+}
 
 export type CamposForm = {
   nome: string;
@@ -122,6 +140,9 @@ export function useFormAssinatura(
   const [escolhaAbertaManual, setEscolhaAbertaManual] = useState<
     boolean | null
   >(null);
+  const [upsellPendente, setUpsellPendente] = useState<UpsellInfo | null>(
+    null,
+  );
 
   const [afiliadas, setAfiliadas] = useState<Afiliada[]>([]);
 
@@ -147,7 +168,7 @@ export function useFormAssinatura(
   useEffect(() => {
     let cancelado = false;
 
-    fetch("/api/planos?ciclo=MONTHLY")
+    fetch("/api/planos")
       .then((res) => {
         if (!res.ok) throw new Error("falha ao carregar planos");
         return res.json();
@@ -192,10 +213,39 @@ export function useFormAssinatura(
     [planos, planoSlug],
   );
 
+  // Reage a troca de país automaticamente, já que `ehBrasil` vem de
+  // `campos.pais`. Mesma constante que o servidor usa pra cobrar de verdade.
+  const acrescimoInternacional = ehBrasil ? 0 : ACRESCIMO_INTERNACIONAL;
+  const valorComAcrescimo = planoSelecionado
+    ? planoSelecionado.valor + acrescimoInternacional
+    : null;
+
+  // Listagem mostra só os mensais, ordenados por `ordem` — Pêssego já é
+  // ordem 1 no banco, então destacar o primeiro do array já resolve sem
+  // fixar o slug "pessego" no código.
+  const planosMensais = useMemo(
+    () =>
+      planos
+        ? planos
+            .filter((p) => p.ciclo === "mensal")
+            .sort((a, b) => a.ordem - b.ordem)
+        : null,
+    [planos],
+  );
+
   // Com plano válido vindo da URL, a escolha fica fechada por padrão; sem
   // plano válido, começa aberta. `escolhaAbertaManual` sobrepõe essa regra
   // assim que a pessoa clica em "trocar plano" ou escolhe um plano.
   const mostrarEscolhaPlanos = escolhaAbertaManual ?? !planoSelecionado;
+
+  // Trimestral da mesma família, pro upsell — nunca de outra família.
+  const trimestralPorFamilia = useMemo(() => {
+    const mapa = new Map<string, Plano>();
+    (planos ?? []).forEach((p) => {
+      if (p.ciclo === "trimestral" && p.familia) mapa.set(p.familia, p);
+    });
+    return mapa;
+  }, [planos]);
 
   function limparErroChave(chave: string) {
     setErros((atual) => {
@@ -210,6 +260,40 @@ export function useFormAssinatura(
     setPlanoSlug(slug);
     setEscolhaAbertaManual(false);
     limparErroChave("plano");
+  }
+
+  /**
+   * Clique no CTA de um plano mensal. Se a família tiver trimestral ativo,
+   * abre o upsell antes de seguir; senão, seleciona direto (comportamento
+   * de sempre).
+   */
+  function escolherPlano(slugMensal: string) {
+    const mensal = planos?.find((p) => p.slug === slugMensal);
+    const trimestral = mensal?.familia
+      ? trimestralPorFamilia.get(mensal.familia)
+      : undefined;
+
+    if (mensal && trimestral) {
+      setUpsellPendente({
+        mensal,
+        trimestral,
+        valorMensalEquivalente: trimestral.valor / 3,
+        economia: mensal.valor * 3 - trimestral.valor,
+      });
+      return;
+    }
+
+    selecionarPlano(slugMensal);
+  }
+
+  function confirmarUpsell(escolheuTrimestral: boolean) {
+    if (!upsellPendente) return;
+    selecionarPlano(
+      escolheuTrimestral
+        ? upsellPendente.trimestral.slug
+        : upsellPendente.mensal.slug,
+    );
+    setUpsellPendente(null);
   }
 
   function alternarEscolhaPlanos() {
@@ -419,12 +503,19 @@ export function useFormAssinatura(
 
   return {
     planos,
+    planosMensais,
     planosErro,
     planoSlug,
     planoSelecionado,
+    acrescimoInternacional,
+    valorComAcrescimo,
     mostrarEscolhaPlanos,
     selecionarPlano,
+    escolherPlano,
     alternarEscolhaPlanos,
+
+    upsellPendente,
+    confirmarUpsell,
 
     afiliadas,
 

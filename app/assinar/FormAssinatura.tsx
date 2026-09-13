@@ -5,12 +5,33 @@ import type { ReactNode } from "react";
 
 import { PAISES } from "@/lib/paises";
 
-import { formatarValor, useFormAssinatura } from "./useFormAssinatura";
+import {
+  formatarPrecoCiclo,
+  formatarValor,
+  useFormAssinatura,
+  type UpsellInfo,
+} from "./useFormAssinatura";
 
 // ---------------------------------------------------------------------------
 // Peças pequenas de UI. Isoladas aqui pra troca de visual não encostar na
 // lógica do hook. Sem design definido ainda: mínimo legível com Tailwind.
 // ---------------------------------------------------------------------------
+
+// Emoji e descrição são só texto/decoração — nunca preço, que sempre vem do
+// banco. Fallback usado enquanto `planos.descricao` estiver vazio.
+const EMOJI_POR_SLUG: Record<string, string> = {
+  pessego: "🍑",
+  flor: "🌸",
+  semente: "🌱",
+};
+
+const DESCRICAO_FALLBACK_POR_SLUG: Record<string, string> = {
+  pessego:
+    "A experiência completa do Clube 21. Você recebe tudo: tiragem e foco do mês, Diário Vitor e Diário Varlei, horóscopo do mês, as três crônicas do mês, mão na massa (drink + receita) e histórias das membras. E ainda ganha: carta de tarô colecionável do mês, participação nos Classificados C21, adesivos, presente de marcas parceiras, sorteios mensais, missões exclusivas, credencial exclusiva de membro e acesso à Comunidade Pêssego.",
+  flor: "Um passo além do essencial. Tudo do Semente, mais o Mão na Massa (drink e receita do mês) e as Histórias das Membras. Ideal pra quem quer sentir mais o clube, sem precisar da experiência completa ainda.",
+  semente:
+    "O primeiro passo pra viver deliciosamente. Tiragem e foco do mês, os diários do Vitor e do Varlei, horóscopo e as três crônicas do mês. Recebe também o Classificados C21 (sem poder participar ainda).",
+};
 
 function Campo({
   id,
@@ -156,6 +177,77 @@ function Botao({
   );
 }
 
+function ModalUpsell({
+  info,
+  onEscolherMensal,
+  onEscolherTrimestral,
+}: {
+  info: UpsellInfo;
+  onEscolherMensal: () => void;
+  onEscolherTrimestral: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onEscolherMensal}
+    >
+      <div
+        className="flex w-full max-w-md flex-col gap-4 rounded bg-white p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-semibold text-zinc-900">
+            Quer economizar no {info.mensal.nome}?
+          </h2>
+          <button
+            type="button"
+            onClick={onEscolherMensal}
+            aria-label="Fechar"
+            className="text-zinc-500 hover:text-zinc-900"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded border border-zinc-300 p-3">
+          <p className="text-sm font-medium text-zinc-900">
+            {info.mensal.nome}
+          </p>
+          <p className="text-sm text-zinc-600">
+            {formatarValor(info.mensal.valor)}/mês
+          </p>
+          <Botao variante="texto" onClick={onEscolherMensal}>
+            Continuar mensal
+          </Botao>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded border border-zinc-900 p-3">
+          <p className="text-sm font-medium text-zinc-900">
+            {info.trimestral.nome}
+          </p>
+          <p className="text-sm font-medium text-zinc-900">
+            {formatarValor(info.trimestral.valor)} a cada 3 meses
+          </p>
+          <p className="text-xs text-zinc-600">
+            {formatarValor(info.valorMensalEquivalente)} por mês, cobrados a
+            cada 3 meses
+          </p>
+          <p className="text-xs text-zinc-600">
+            Economize {formatarValor(info.economia)}
+          </p>
+          {info.mensal.familia === "pessego" && (
+            <p className="text-xs text-zinc-600">
+              {formatarValor(info.valorMensalEquivalente)} por carta — você
+              paga o mesmo do plano Flor e leva o Pêssego
+            </p>
+          )}
+          <Botao onClick={onEscolherTrimestral}>Trocar pelo trimestral</Botao>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tela
 // ---------------------------------------------------------------------------
@@ -202,7 +294,10 @@ export default function FormAssinatura({
                 {f.planoSelecionado.nome}
               </p>
               <p className="text-sm text-zinc-600">
-                {formatarValor(f.planoSelecionado.valor)}/mês
+                {formatarPrecoCiclo(
+                  f.planoSelecionado.ciclo,
+                  f.valorComAcrescimo ?? f.planoSelecionado.valor,
+                )}
               </p>
             </div>
             <Botao variante="texto" onClick={f.alternarEscolhaPlanos}>
@@ -211,33 +306,60 @@ export default function FormAssinatura({
           </div>
         )}
 
-        {f.planos && f.mostrarEscolhaPlanos && (
-          <div id="plano" className="flex flex-col gap-2">
-            {f.planos.map((p) => (
-              <button
-                key={p.slug}
-                type="button"
-                onClick={() => f.selecionarPlano(p.slug)}
-                className={`flex items-center justify-between rounded border px-3 py-2 text-left hover:border-zinc-500 ${
-                  f.planoSlug === p.slug
-                    ? "border-zinc-900"
-                    : "border-zinc-300"
-                }`}
-              >
-                <span className="text-sm font-medium text-zinc-900">
-                  {p.nome}
-                </span>
-                <span className="text-sm text-zinc-600">
-                  {formatarValor(p.valor)}/mês
-                </span>
-              </button>
-            ))}
+        {f.planosMensais && f.mostrarEscolhaPlanos && (
+          <div id="plano" className="flex flex-col gap-4">
+            {f.planosMensais.map((p, index) => {
+              const destaque = index === 0;
+              const descricao =
+                p.descricao || DESCRICAO_FALLBACK_POR_SLUG[p.slug] || "";
+              const emoji = EMOJI_POR_SLUG[p.slug];
+
+              return (
+                <div
+                  key={p.slug}
+                  className={`flex flex-col gap-3 rounded border p-4 ${
+                    destaque
+                      ? "border-zinc-900 shadow-md sm:scale-105"
+                      : "border-zinc-300"
+                  }`}
+                >
+                  {destaque && (
+                    <span className="self-start rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white">
+                      Mais completo
+                    </span>
+                  )}
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-base font-semibold text-zinc-900">
+                      {emoji ? `${emoji} ` : ""}
+                      {p.nome}
+                    </span>
+                    <span className="whitespace-nowrap text-sm text-zinc-600">
+                      {formatarValor(p.valor)}/mês
+                    </span>
+                  </div>
+                  {descricao && (
+                    <p className="text-sm text-zinc-700">{descricao}</p>
+                  )}
+                  <Botao onClick={() => f.escolherPlano(p.slug)}>
+                    Quero o {p.nome}
+                  </Botao>
+                </div>
+              );
+            })}
             {f.erros.plano && (
               <p className="text-xs text-red-600">{f.erros.plano}</p>
             )}
           </div>
         )}
       </section>
+
+      {f.upsellPendente && (
+        <ModalUpsell
+          info={f.upsellPendente}
+          onEscolherMensal={() => f.confirmarUpsell(false)}
+          onEscolherTrimestral={() => f.confirmarUpsell(true)}
+        />
+      )}
 
       {/* Indicação */}
       <section className="flex flex-col gap-2">
@@ -330,6 +452,12 @@ export default function FormAssinatura({
           obrigatorio
           comOpcaoVazia={false}
         />
+        {!f.ehBrasil && (
+          <p className="text-xs text-zinc-600">
+            Acréscimo de envio internacional:{" "}
+            {formatarValor(f.acrescimoInternacional)}
+          </p>
+        )}
         <Campo
           id="cep"
           label={f.ehBrasil ? "CEP" : "Código postal"}
