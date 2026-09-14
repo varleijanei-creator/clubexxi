@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { AsaasError, criarCheckout } from "@/lib/asaas";
+import {
+  AsaasError,
+  buscarClientePorCpf,
+  criarAssinatura,
+  criarCheckout,
+  criarCliente,
+  listarCobrancasAssinatura,
+} from "@/lib/asaas";
 import { ACRESCIMO_INTERNACIONAL } from "@/lib/precos";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -10,6 +17,12 @@ export const runtime = "nodejs";
 // chargeType DETACHED, que não renova). Bate com a decisão do projeto:
 // "cartão é o padrão, só cartão renova sozinho".
 const BILLING_TYPES = ["CREDIT_CARD"];
+
+// Pix recorrente não passa pelo checkout hospedado — é assinatura criada
+// direto pela API (ver spec-rota-pix.md). "CREDIT_CARD" aqui é o caminho
+// já existente, inalterado.
+const FORMAS_PAGAMENTO = ["CREDIT_CARD", "PIX"] as const;
+type FormaPagamento = (typeof FORMAS_PAGAMENTO)[number];
 
 // -------------------------------------------------------------------------
 // Validação da entrada
@@ -186,6 +199,187 @@ function proximoVencimento(): string {
   }).format(new Date());
 }
 
+function aguardar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * `invoiceUrl` foi CONFIRMADO em execução real contra o sandbox (13/09/2026):
+ * é o campo com a URL da fatura hospedada no retorno de
+ * GET /v3/subscriptions/{id}/payments. Só é chamada depois que
+ * `criarPedidoPix` já confirmou `billingType: "PIX"` na cobrança — os
+ * fallbacks (`bankSlipUrl`/`transactionReceiptUrl`) são só por robustez a
+ * variação de nome de campo, não pra tolerar cobrança em boleto.
+ */
+function extrairUrlFatura(cobranca: Record<string, unknown>): string | null {
+  const candidatos = ["invoiceUrl", "bankSlipUrl", "transactionReceiptUrl"];
+  for (const campo of candidatos) {
+    const valor = cobranca[campo];
+    if (typeof valor === "string" && valor) return valor;
+  }
+  return null;
+}
+
+/**
+ * Erro em qualquer etapa do ramo Pix (2.2 a 2.4 da spec). Por spec, o pedido
+ * fica órfão com status "iniciado" (pendente) — diferente do caminho de
+ * cartão, aqui NÃO marcamos "cancelado", porque não ativou ninguém e pode
+ * ser retomado depois. Sempre devolve 500, com a mensagem do Asaas quando
+ * disponível.
+ */
+function falharPix(pedidoId: string, etapa: string, err: unknown) {
+  if (err instanceof AsaasError) {
+    console.error(`[checkout] Pix: Asaas recusou (${etapa})`, {
+      pedidoId,
+      message: err.message,
+      detalhes: err.detalhes,
+    });
+  } else {
+    console.error(`[checkout] Pix: erro inesperado (${etapa})`, {
+      pedidoId,
+      err,
+    });
+  }
+
+  const mensagem =
+    err instanceof AsaasError
+      ? err.message
+      : "Falha ao processar o pagamento via Pix. Tente de novo em instantes.";
+  return NextResponse.json({ error: mensagem, pedidoId }, { status: 500 });
+}
+
+/**
+ * Ramo Pix (spec-rota-pix.md §2): cliente + assinatura direto pela API do
+ * Asaas, sem passar pelo checkout hospedado. O pedido já foi gravado antes
+ * de chamar isso — `asaas_checkout_id` fica nulo nesse caminho, como
+ * esperado pela spec.
+ */
+async function criarPedidoPix(params: {
+  pedidoId: string;
+  pessoais: Pessoais;
+  endereco: Endereco;
+  ehBrasil: boolean;
+  planoNome: string;
+  valor: number;
+  cicloAsaas: "MONTHLY" | "QUARTERLY";
+}) {
+  const { pedidoId, pessoais, endereco, ehBrasil, planoNome, valor, cicloAsaas } =
+    params;
+
+  // 2.2) Cliente no Asaas — reaproveita se já existir pelo CPF.
+  let clienteId: string;
+  try {
+    const existente = await buscarClientePorCpf(pessoais.cpf);
+    if (existente) {
+      clienteId = existente.id;
+    } else {
+      const criado = await criarCliente({
+        name: pessoais.nome,
+        email: pessoais.email,
+        cpfCnpj: pessoais.cpf,
+        phone: pessoais.telefone,
+        address: endereco.logradouro,
+        addressNumber: endereco.numero,
+        complement: endereco.complemento ?? undefined,
+        province: endereco.bairro,
+        postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
+      });
+      clienteId = criado.id;
+    }
+  } catch (err) {
+    return falharPix(pedidoId, "cliente", err);
+  }
+
+  // 2.3) Assinatura cobrada via Pix a cada ciclo. externalReference é o que
+  // amarra a venda ao pedido no webhook.
+  let assinaturaId: string;
+  try {
+    const assinatura = await criarAssinatura({
+      customer: clienteId,
+      billingType: "PIX",
+      value: valor,
+      nextDueDate: proximoVencimento(),
+      cycle: cicloAsaas,
+      description: `Clube 21 — ${planoNome}`,
+      externalReference: pedidoId,
+    });
+    assinaturaId = assinatura.id;
+  } catch (err) {
+    return falharPix(pedidoId, "assinatura", err);
+  }
+
+  // 2.4) Primeira cobrança da assinatura, pra pegar o link da fatura Pix.
+  // Retry curto se a listagem vier vazia (pequeno atraso na geração).
+  let cobrancas: Record<string, unknown>[];
+  try {
+    cobrancas = await listarCobrancasAssinatura(assinaturaId);
+    if (cobrancas.length === 0) {
+      await aguardar(1000);
+      cobrancas = await listarCobrancasAssinatura(assinaturaId);
+    }
+  } catch (err) {
+    return falharPix(pedidoId, "cobranças", err);
+  }
+
+  const primeiraCobranca = cobrancas[0];
+  if (!primeiraCobranca) {
+    return falharPix(
+      pedidoId,
+      "cobranças",
+      new AsaasError(
+        "Não foi possível gerar a cobrança Pix. Tente de novo em instantes.",
+        502,
+      ),
+    );
+  }
+
+  // Log da cobrança inteira: útil pra investigar qualquer anomalia (ver
+  // trava de billingType logo abaixo).
+  console.log(
+    "[checkout] Pix: retorno de GET /subscriptions/{id}/payments",
+    JSON.stringify(primeiraCobranca),
+  );
+
+  // Trava: já vimos essa mesma chamada devolver billingType "BOLETO" pra uma
+  // assinatura criada com "PIX" (1 em 9 tentativas em teste, sem causa
+  // identificada — ver conversa). Entregar um boleto pra quem escolheu Pix é
+  // pior que mostrar erro, então falha explicitamente em vez de devolver a
+  // URL da fatura errada.
+  if (primeiraCobranca.billingType !== "PIX") {
+    console.error(
+      "[checkout] Pix: cobrança veio com billingType diferente de PIX — retorno completo acima",
+      { pedidoId, assinaturaId, billingType: primeiraCobranca.billingType },
+    );
+    return falharPix(
+      pedidoId,
+      "cobranças",
+      new AsaasError(
+        "Não foi possível gerar a cobrança em Pix. Tente de novo em instantes.",
+        502,
+      ),
+    );
+  }
+
+  const urlFatura = extrairUrlFatura(primeiraCobranca);
+  if (!urlFatura) {
+    console.error(
+      "[checkout] Pix: nenhum campo de URL reconhecido na cobrança (inesperado — invoiceUrl é confirmado) — ver campos no log acima",
+      { pedidoId, assinaturaId, camposDisponiveis: Object.keys(primeiraCobranca) },
+    );
+    return falharPix(
+      pedidoId,
+      "cobranças",
+      new AsaasError("Não foi possível obter o link de pagamento Pix.", 502),
+    );
+  }
+
+  return NextResponse.json({
+    url: urlFatura,
+    pedidoId,
+    subscriptionId: assinaturaId,
+  });
+}
+
 // -------------------------------------------------------------------------
 // POST /api/checkout
 // -------------------------------------------------------------------------
@@ -198,6 +392,16 @@ export async function POST(request: Request) {
     console.error("[checkout] 400: corpo não é JSON válido");
     return NextResponse.json(
       { error: "Corpo da requisição inválido (JSON esperado)." },
+      { status: 400 },
+    );
+  }
+
+  const corpoObj = (corpo ?? {}) as Record<string, unknown>;
+  const formaPagamento = (texto(corpoObj.forma_pagamento) ||
+    "CREDIT_CARD") as FormaPagamento;
+  if (!FORMAS_PAGAMENTO.includes(formaPagamento)) {
+    return NextResponse.json(
+      { error: "forma_pagamento inválida" },
       { status: 400 },
     );
   }
@@ -293,6 +497,21 @@ export async function POST(request: Request) {
       { error: "Não foi possível iniciar o pedido." },
       { status: 500 },
     );
+  }
+
+  // Pix não passa pelo checkout hospedado: cliente + assinatura direto pela
+  // API do Asaas (spec-rota-pix.md). O caminho de cartão abaixo continua
+  // exatamente como antes.
+  if (formaPagamento === "PIX") {
+    return criarPedidoPix({
+      pedidoId: pedido.id,
+      pessoais,
+      endereco,
+      ehBrasil,
+      planoNome: planoRow.nome,
+      valor,
+      cicloAsaas,
+    });
   }
 
   // 2) Cria o checkout no Asaas. externalReference amarra o retorno ao pedido.
