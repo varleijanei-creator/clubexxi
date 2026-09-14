@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { formatarValor } from "@/lib/formatacao";
 import { PAIS_PADRAO } from "@/lib/paises";
-import { ACRESCIMO_INTERNACIONAL } from "@/lib/precos";
+import { calcularAcrescimoInternacional } from "@/lib/precos";
 import {
   apenasDigitos,
   formatarCEP,
@@ -37,8 +37,6 @@ export type FormaPagamento = "CREDIT_CARD" | "PIX";
 export type UpsellInfo = {
   mensal: Plano;
   trimestral: Plano;
-  valorMensalEquivalente: number;
-  economia: number;
 };
 
 /** Preço do plano formatado conforme o ciclo — nunca o valor trimestral sozinho. */
@@ -222,8 +220,12 @@ export function useFormAssinatura(
   );
 
   // Reage a troca de país automaticamente, já que `ehBrasil` vem de
-  // `campos.pais`. Mesma constante que o servidor usa pra cobrar de verdade.
-  const acrescimoInternacional = ehBrasil ? 0 : ACRESCIMO_INTERNACIONAL;
+  // `campos.pais`. Mesma fórmula que o servidor usa pra cobrar de verdade:
+  // R$ 20 por envelope, ou seja, por mês do ciclo do plano.
+  const acrescimoInternacional =
+    ehBrasil || !planoSelecionado
+      ? 0
+      : calcularAcrescimoInternacional(planoSelecionado.meses);
   const valorComAcrescimo = planoSelecionado
     ? planoSelecionado.valor + acrescimoInternacional
     : null;
@@ -282,12 +284,7 @@ export function useFormAssinatura(
       : undefined;
 
     if (mensal && trimestral) {
-      setUpsellPendente({
-        mensal,
-        trimestral,
-        valorMensalEquivalente: trimestral.valor / 3,
-        economia: mensal.valor * 3 - trimestral.valor,
-      });
+      setUpsellPendente({ mensal, trimestral });
       return;
     }
 

@@ -4,6 +4,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { PAISES } from "@/lib/paises";
+import {
+  ACRESCIMO_INTERNACIONAL_POR_MES,
+  calcularAcrescimoInternacional,
+} from "@/lib/precos";
 
 import {
   formatarPrecoCiclo,
@@ -180,13 +184,29 @@ function Botao({
 
 function ModalUpsell({
   info,
+  ehBrasil,
   onEscolherMensal,
   onEscolherTrimestral,
 }: {
   info: UpsellInfo;
+  ehBrasil: boolean;
   onEscolherMensal: () => void;
   onEscolherTrimestral: () => void;
 }) {
+  // Mesma fórmula do servidor: R$ 20 por envelope, por mês do ciclo. Reaberto
+  // com país já não-BR (ex.: "trocar plano" depois de escolher Portugal),
+  // então precisa refletir o acréscimo igual ao resto da tela.
+  const acrescimoMensal = ehBrasil
+    ? 0
+    : calcularAcrescimoInternacional(info.mensal.meses);
+  const acrescimoTrimestral = ehBrasil
+    ? 0
+    : calcularAcrescimoInternacional(info.trimestral.meses);
+  const valorMensal = info.mensal.valor + acrescimoMensal;
+  const valorTrimestral = info.trimestral.valor + acrescimoTrimestral;
+  const valorMensalEquivalente = valorTrimestral / 3;
+  const economia = valorMensal * 3 - valorTrimestral;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -215,7 +235,7 @@ function ModalUpsell({
             {info.mensal.nome}
           </p>
           <p className="text-sm text-zinc-600">
-            {formatarValor(info.mensal.valor)}/mês
+            {formatarValor(valorMensal)}/mês
           </p>
           <Botao variante="texto" onClick={onEscolherMensal}>
             Continuar mensal
@@ -227,18 +247,18 @@ function ModalUpsell({
             {info.trimestral.nome}
           </p>
           <p className="text-sm font-medium text-zinc-900">
-            {formatarValor(info.trimestral.valor)} a cada 3 meses
+            {formatarValor(valorTrimestral)} a cada 3 meses
           </p>
           <p className="text-xs text-zinc-600">
-            {formatarValor(info.valorMensalEquivalente)} por mês, cobrados a
+            {formatarValor(valorMensalEquivalente)} por mês, cobrados a
             cada 3 meses
           </p>
           <p className="text-xs text-zinc-600">
-            Economize {formatarValor(info.economia)}
+            Economize {formatarValor(economia)}
           </p>
           {info.mensal.familia === "pessego" && (
             <p className="text-xs text-zinc-600">
-              {formatarValor(info.valorMensalEquivalente)} por carta — você
+              {formatarValor(valorMensalEquivalente)} por carta — você
               paga o mesmo do plano Flor e leva o Pêssego
             </p>
           )}
@@ -398,7 +418,11 @@ export default function FormAssinatura({
                       {p.nome}
                     </span>
                     <span className="whitespace-nowrap text-sm text-zinc-600">
-                      {formatarValor(p.valor)}/mês
+                      {formatarValor(
+                        p.valor +
+                          (f.ehBrasil ? 0 : calcularAcrescimoInternacional(p.meses)),
+                      )}
+                      /mês
                     </span>
                   </div>
                   {descricao && (
@@ -420,6 +444,7 @@ export default function FormAssinatura({
       {f.upsellPendente && (
         <ModalUpsell
           info={f.upsellPendente}
+          ehBrasil={f.ehBrasil}
           onEscolherMensal={() => f.confirmarUpsell(false)}
           onEscolherTrimestral={() => f.confirmarUpsell(true)}
         />
@@ -516,10 +541,11 @@ export default function FormAssinatura({
           obrigatorio
           comOpcaoVazia={false}
         />
-        {!f.ehBrasil && (
+        {!f.ehBrasil && f.planoSelecionado && (
           <p className="text-xs text-zinc-600">
-            Acréscimo de envio internacional:{" "}
-            {formatarValor(f.acrescimoInternacional)}
+            Envio internacional: + {formatarValor(f.acrescimoInternacional)}
+            {f.planoSelecionado.meses > 1 &&
+              ` (${formatarValor(ACRESCIMO_INTERNACIONAL_POR_MES)} por envelope)`}
           </p>
         )}
         <Campo

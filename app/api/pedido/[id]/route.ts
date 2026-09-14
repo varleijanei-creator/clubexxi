@@ -85,7 +85,7 @@ export async function GET(
 
   const { data: planoRow } = await supabase
     .from("planos")
-    .select("nome, valor, link_comunidade")
+    .select("nome, valor, meses, link_comunidade")
     .eq("slug", pedido.plano_slug)
     .maybeSingle();
 
@@ -97,6 +97,7 @@ export async function GET(
     plano_nome: planoRow?.nome ?? pedido.plano_slug,
     plano_slug: pedido.plano_slug,
     valor,
+    meses: planoRow?.meses ?? 1,
     link_comunidade: planoRow?.link_comunidade ?? null,
     primeira_edicao: primeiraEdicao,
   });

@@ -42,13 +42,14 @@ export default function PaginaSucesso({
   }
 
   const { dados } = estado;
+  const cicloTexto = dados.meses === 1 ? "por mês" : "a cada 3 meses";
 
   return (
     <PaginaRetorno titulo="Pagamento aprovado!">
       <p>
         {dados.primeiro_nome ? `${dados.primeiro_nome}, sua` : "Sua"}{" "}
         assinatura do <strong>{dados.plano_nome}</strong> está confirmada —{" "}
-        {formatarValor(dados.valor)}/mês.
+        {formatarValor(dados.valor)} {cicloTexto}.
       </p>
 
       {dados.primeira_edicao && (

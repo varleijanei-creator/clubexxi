@@ -8,7 +8,7 @@ import {
   criarCliente,
   listarCobrancasAssinatura,
 } from "@/lib/asaas";
-import { ACRESCIMO_INTERNACIONAL } from "@/lib/precos";
+import { calcularAcrescimoInternacional } from "@/lib/precos";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -432,7 +432,7 @@ export async function POST(request: Request) {
   // mandar pra ciclo (ele nem manda: o ciclo é o do plano escolhido).
   const { data: planoRow, error: planoErr } = await supabase
     .from("planos")
-    .select("slug, nome, tipo, valor, ativo, ciclo")
+    .select("slug, nome, tipo, valor, ativo, ciclo, meses")
     .eq("slug", plano)
     .maybeSingle();
 
@@ -460,9 +460,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // Endereço fora do Brasil soma um acréscimo fixo, mensal ou trimestral —
-  // é esse valor (não o do plano puro) que é gravado e cobrado.
-  const valor = valorBase + (ehBrasil ? 0 : ACRESCIMO_INTERNACIONAL);
+  // Endereço fora do Brasil soma R$ 20 por envelope, ou seja, por mês do
+  // ciclo (mensal +20, trimestral +60) — é esse valor (não o do plano puro)
+  // que é gravado e cobrado.
+  const valor =
+    valorBase + (ehBrasil ? 0 : calcularAcrescimoInternacional(planoRow.meses));
 
   // mensal -> MONTHLY, trimestral -> QUARTERLY. Errar isso cobra R$ 180 e
   // recobra em 30 dias, então vem sempre do plano, nunca do cliente.

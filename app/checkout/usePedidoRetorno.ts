@@ -7,6 +7,7 @@ export type PedidoRetorno = {
   plano_nome: string;
   plano_slug: string;
   valor: number;
+  meses: number;
   link_comunidade: string | null;
   primeira_edicao: { nome: string; fechamento: string } | null;
 };
