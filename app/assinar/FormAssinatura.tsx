@@ -9,6 +9,7 @@ import {
   formatarPrecoCiclo,
   formatarValor,
   useFormAssinatura,
+  type FormaPagamento,
   type UpsellInfo,
 } from "./useFormAssinatura";
 
@@ -245,6 +246,69 @@ function ModalUpsell({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Seletor de forma de pagamento (spec-seletor-pagamento.md). Estado
+ * selecionado não depende só de cor — borda + fundo + "✓" no título.
+ */
+function SeletorPagamento({
+  valor,
+  onChange,
+  trimestral,
+}: {
+  valor: FormaPagamento;
+  onChange: (v: FormaPagamento) => void;
+  trimestral: boolean;
+}) {
+  const opcoes: { valor: FormaPagamento; titulo: string; texto: string }[] = [
+    {
+      valor: "CREDIT_CARD",
+      titulo: "Cartão de crédito",
+      texto: trimestral
+        ? "Cobrança automática a cada 3 meses."
+        : "Cobrança automática todo mês.",
+    },
+    {
+      valor: "PIX",
+      titulo: "Pix",
+      texto: trimestral
+        ? "A cada 3 meses você recebe um novo Pix por e-mail pra pagar."
+        : "A cada mês você recebe um novo Pix por e-mail pra pagar.",
+    },
+  ];
+
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-semibold text-zinc-900">
+        Forma de pagamento
+      </h2>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {opcoes.map((o) => {
+          const selecionado = valor === o.valor;
+          return (
+            <button
+              key={o.valor}
+              type="button"
+              onClick={() => onChange(o.valor)}
+              aria-pressed={selecionado}
+              className={`flex flex-1 flex-col gap-1 rounded border p-3 text-left ${
+                selecionado
+                  ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900"
+                  : "border-zinc-300 bg-white"
+              }`}
+            >
+              <span className="text-sm font-medium text-zinc-900">
+                {selecionado ? "✓ " : ""}
+                {o.titulo}
+              </span>
+              <span className="text-xs text-zinc-600">{o.texto}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -545,6 +609,12 @@ export default function FormAssinatura({
         </Link>
         .
       </p>
+
+      <SeletorPagamento
+        valor={f.formaPagamento}
+        onChange={f.selecionarFormaPagamento}
+        trimestral={f.planoSelecionado?.ciclo === "trimestral"}
+      />
 
       <Botao tipo="submit" desabilitado={f.enviando}>
         {f.enviando ? "Enviando…" : "Continuar para pagamento"}

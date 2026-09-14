@@ -32,6 +32,8 @@ export type Afiliada = {
   nome: string;
 };
 
+export type FormaPagamento = "CREDIT_CARD" | "PIX";
+
 export type UpsellInfo = {
   mensal: Plano;
   trimestral: Plano;
@@ -145,6 +147,12 @@ export function useFormAssinatura(
   );
 
   const [afiliadas, setAfiliadas] = useState<Afiliada[]>([]);
+
+  // Cartão pré-selecionado por padrão (spec-seletor-pagamento.md) — não reseta
+  // ao trocar de plano, então a escolha da pessoa se mantém entre mensal e
+  // trimestral.
+  const [formaPagamento, setFormaPagamento] =
+    useState<FormaPagamento>("CREDIT_CARD");
 
   const [campos, setCampos] = useState<CamposForm>(() =>
     CAMPOS_INICIAIS(refInicial),
@@ -471,6 +479,7 @@ export function useFormAssinatura(
           ponto_referencia: campos.ponto_referencia.trim() || undefined,
           ref_code: campos.ref_code.trim() || undefined,
           afiliada_id: campos.afiliada_id || undefined,
+          forma_pagamento: formaPagamento,
         }),
       });
 
@@ -518,6 +527,9 @@ export function useFormAssinatura(
     confirmarUpsell,
 
     afiliadas,
+
+    formaPagamento,
+    selecionarFormaPagamento: setFormaPagamento,
 
     campos,
     ehBrasil,
