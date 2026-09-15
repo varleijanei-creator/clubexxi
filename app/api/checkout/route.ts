@@ -52,14 +52,11 @@ type EntradaValida = {
   pessoais: Pessoais;
   endereco: Endereco;
   refCode: string | null;
-  afiliadaId: string | null;
+  afiliadoCodigo: string | null;
 };
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const digitos = (v: unknown): string => texto(v).replace(/\D/g, "");
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validarEntrada(
   corpo: unknown,
@@ -115,9 +112,13 @@ function validarEntrada(
   if (refCode && refCode.length > 40)
     erros.ref_code = "Código de indicação inválido";
 
-  const afiliadaId = texto(b.afiliada_id) || null;
-  if (afiliadaId && !UUID_RE.test(afiliadaId))
-    erros.afiliada_id = "Afiliada inválida";
+  // Vem da URL (?af=), então é entrada não confiável. Sem formato esperado
+  // além de um limite de tamanho — o cruzamento com a tabela `afiliados`
+  // (existe/ativo) acontece depois, com consulta parametrizada, e um código
+  // que não bate é ignorado em silêncio, não rejeitado aqui.
+  const afiliadoCodigo = texto(b.afiliado_codigo) || null;
+  if (afiliadoCodigo && afiliadoCodigo.length > 40)
+    erros.afiliado_codigo = "Código de afiliada inválido";
 
   if (Object.keys(erros).length > 0) return { erros };
 
@@ -137,7 +138,7 @@ function validarEntrada(
         ponto_referencia: texto(b.ponto_referencia) || null,
       },
       refCode,
-      afiliadaId,
+      afiliadoCodigo,
     },
   };
 }
@@ -421,10 +422,35 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { plano, pessoais, endereco, refCode, afiliadaId } = validado.dados;
+  const { plano, pessoais, endereco, refCode, afiliadoCodigo } =
+    validado.dados;
   const ehBrasil = endereco.pais === "BR";
 
   const supabase = createServiceClient();
+
+  // Afiliada e indicação de assinante não coexistem (decisão de negócio,
+  // spec-link-afiliada.md): se o código de afiliada bater com uma afiliada
+  // ativa, ela tem prioridade e o ref_code é descartado, mesmo que os dois
+  // tenham vindo na mesma URL. Código que não existe ou está inativo é
+  // ignorado em silêncio — link digitado errado não pode custar uma venda.
+  let afiliadoId: string | null = null;
+  let refCodeEfetivo = refCode;
+
+  if (afiliadoCodigo) {
+    const { data: afiliado, error: afiliadoErr } = await supabase
+      .from("afiliados")
+      .select("id")
+      .ilike("codigo", afiliadoCodigo.replace(/[%_\\]/g, "\\$&"))
+      .eq("ativo", true)
+      .maybeSingle();
+
+    if (afiliadoErr) {
+      console.error("[checkout] erro ao buscar afiliada", afiliadoErr);
+    } else if (afiliado) {
+      afiliadoId = afiliado.id;
+      refCodeEfetivo = null;
+    }
+  }
 
   // Plano + preço + ciclo vêm do banco. Cada combinação plano+ciclo é sua
   // própria linha em `planos` (ex. "pessego-trimestral"), já com o valor
@@ -474,8 +500,8 @@ export async function POST(request: Request) {
   const dadosJson = {
     pessoais,
     endereco,
-    ref_code: refCode,
-    afiliada_id: afiliadaId,
+    ref_code: refCodeEfetivo,
+    afiliado_id: afiliadoId,
     valor,
   };
 
@@ -485,8 +511,8 @@ export async function POST(request: Request) {
       plano_slug: plano,
       ciclo: cicloAsaas,
       tipo: planoRow.tipo ?? "assinatura",
-      ref_code: refCode,
-      afiliado_id: afiliadaId,
+      ref_code: refCodeEfetivo,
+      afiliado_id: afiliadoId,
       status: "iniciado",
       dados_json: dadosJson,
     })

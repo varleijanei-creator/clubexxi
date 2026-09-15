@@ -339,11 +339,13 @@ function SeletorPagamento({
 export default function FormAssinatura({
   planoInicial,
   refInicial,
+  afInicial,
 }: {
   planoInicial: string | null;
   refInicial: string | null;
+  afInicial: string | null;
 }) {
-  const f = useFormAssinatura(planoInicial, refInicial);
+  const f = useFormAssinatura(planoInicial, refInicial, afInicial);
 
   return (
     <form
@@ -466,19 +468,6 @@ export default function FormAssinatura({
           </Botao>
         )}
       </section>
-
-      {/* Afiliada */}
-      {f.afiliadas.length > 0 && (
-        <Select
-          id="afiliada_id"
-          label="Quem te indicou o clube?"
-          value={f.campos.afiliada_id}
-          onChange={(v) => f.atualizarCampo("afiliada_id", v)}
-          opcoes={f.afiliadas.map((a) => ({ value: a.id, label: a.nome }))}
-          ajuda="Opcional"
-          erro={f.erros.afiliada_id}
-        />
-      )}
 
       {/* Dados pessoais */}
       <section className="flex flex-col gap-3">

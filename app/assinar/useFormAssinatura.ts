@@ -27,11 +27,6 @@ export type Plano = {
   descricao: string | null;
 };
 
-export type Afiliada = {
-  id: string;
-  nome: string;
-};
-
 export type FormaPagamento = "CREDIT_CARD" | "PIX";
 
 export type UpsellInfo = {
@@ -60,10 +55,13 @@ export type CamposForm = {
   uf: string;
   ponto_referencia: string;
   ref_code: string;
-  afiliada_id: string;
+  afiliado_codigo: string;
 };
 
-const CAMPOS_INICIAIS = (refInicial: string | null): CamposForm => ({
+const CAMPOS_INICIAIS = (
+  refInicial: string | null,
+  afInicial: string | null,
+): CamposForm => ({
   nome: "",
   email: "",
   cpf: "",
@@ -78,7 +76,7 @@ const CAMPOS_INICIAIS = (refInicial: string | null): CamposForm => ({
   uf: "",
   ponto_referencia: "",
   ref_code: refInicial ?? "",
-  afiliada_id: "",
+  afiliado_codigo: afInicial ?? "",
 });
 
 type CepStatus = "ocioso" | "carregando" | "ok" | "erro";
@@ -131,6 +129,7 @@ function validarCampos(
 export function useFormAssinatura(
   planoInicial: string | null,
   refInicial: string | null,
+  afInicial: string | null,
 ) {
   const [planos, setPlanos] = useState<Plano[] | null>(null);
   const [planosErro, setPlanosErro] = useState<string | null>(null);
@@ -144,8 +143,6 @@ export function useFormAssinatura(
     null,
   );
 
-  const [afiliadas, setAfiliadas] = useState<Afiliada[]>([]);
-
   // Cartão pré-selecionado por padrão (spec-seletor-pagamento.md) — não reseta
   // ao trocar de plano, então a escolha da pessoa se mantém entre mensal e
   // trimestral.
@@ -153,7 +150,7 @@ export function useFormAssinatura(
     useState<FormaPagamento>("CREDIT_CARD");
 
   const [campos, setCampos] = useState<CamposForm>(() =>
-    CAMPOS_INICIAIS(refInicial),
+    CAMPOS_INICIAIS(refInicial, afInicial),
   );
   const [mostrarCampoIndicacao, setMostrarCampoIndicacao] = useState(
     Boolean(refInicial),
@@ -189,24 +186,6 @@ export function useFormAssinatura(
       })
       .catch(() => {
         if (!cancelado) setPlanosErro("Não foi possível carregar os planos.");
-      });
-
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-
-  // Afiliadas — lista vazia significa que o campo não aparece.
-  useEffect(() => {
-    let cancelado = false;
-
-    fetch("/api/afiliadas")
-      .then((res) => (res.ok ? res.json() : { afiliadas: [] }))
-      .then((data: { afiliadas: Afiliada[] }) => {
-        if (!cancelado) setAfiliadas(data.afiliadas ?? []);
-      })
-      .catch(() => {
-        if (!cancelado) setAfiliadas([]);
       });
 
     return () => {
@@ -475,7 +454,7 @@ export function useFormAssinatura(
           pais: campos.pais,
           ponto_referencia: campos.ponto_referencia.trim() || undefined,
           ref_code: campos.ref_code.trim() || undefined,
-          afiliada_id: campos.afiliada_id || undefined,
+          afiliado_codigo: campos.afiliado_codigo.trim() || undefined,
           forma_pagamento: formaPagamento,
         }),
       });
@@ -522,8 +501,6 @@ export function useFormAssinatura(
 
     upsellPendente,
     confirmarUpsell,
-
-    afiliadas,
 
     formaPagamento,
     selecionarFormaPagamento: setFormaPagamento,
