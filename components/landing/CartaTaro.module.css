@@ -1,0 +1,53 @@
+.secao {
+  padding: clamp(var(--c21-e-8), 11vw, 8.125rem) var(--c21-e-3);
+  background: var(--c21-ceu);
+}
+
+.conteudo {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(var(--c21-e-4), 5vw, var(--c21-e-8));
+  align-items: center;
+}
+
+.texto {
+  flex: 1 1 300px;
+  min-width: 260px;
+}
+
+.titulo {
+  margin: 0 0 var(--c21-e-3);
+  font-family: var(--c21-fonte-display);
+  font-weight: 400;
+  font-size: clamp(var(--c21-t-xl), 6vw, var(--c21-t-2xl));
+  line-height: var(--c21-altura-apertada);
+  color: var(--c21-tinta);
+}
+
+.paragrafo {
+  margin: 0 0 var(--c21-e-2);
+  font-size: var(--c21-t-base);
+  line-height: var(--c21-altura-normal);
+  color: var(--c21-tinta);
+  text-wrap: pretty;
+}
+
+.selo {
+  margin: var(--c21-e-2) 0 0;
+  display: inline-block;
+  background: var(--c21-tinta);
+  color: var(--c21-papel);
+  font-weight: 700;
+  font-size: var(--c21-t-sm);
+  padding: var(--c21-e-1) var(--c21-e-3);
+  border-radius: var(--c21-raio-pilula);
+}
+
+.imagem {
+  flex: 1 1 320px;
+  min-width: 250px;
+  display: flex;
+  justify-content: center;
+}

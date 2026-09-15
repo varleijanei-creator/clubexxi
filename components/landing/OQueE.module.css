@@ -1,0 +1,45 @@
+.secao {
+  padding: clamp(var(--c21-e-8), 11vw, 8.25rem) var(--c21-e-3);
+  background: var(--c21-papel);
+}
+
+.conteudo {
+  max-width: var(--c21-largura-pagina);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(var(--c21-e-4), 5vw, var(--c21-e-8));
+  align-items: center;
+}
+
+.texto {
+  flex: 1 1 380px;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--c21-e-3);
+}
+
+.titulo {
+  margin: 0 0 var(--c21-e-1);
+  font-family: var(--c21-fonte-display);
+  font-weight: 400;
+  font-size: clamp(var(--c21-t-xl), 6vw, var(--c21-t-2xl));
+  line-height: var(--c21-altura-apertada);
+  color: var(--c21-vermelho);
+}
+
+.paragrafo {
+  margin: 0;
+  font-size: var(--c21-t-base);
+  line-height: var(--c21-altura-normal);
+  color: var(--c21-tinta);
+  text-wrap: pretty;
+}
+
+.imagem {
+  flex: 1 1 320px;
+  min-width: 260px;
+  display: flex;
+  justify-content: center;
+}

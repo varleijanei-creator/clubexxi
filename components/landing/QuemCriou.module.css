@@ -1,0 +1,62 @@
+.secao {
+  padding: clamp(var(--c21-e-8), 11vw, 8.125rem) var(--c21-e-3);
+  background: var(--c21-papel-fundo);
+}
+
+.conteudo {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.titulo {
+  margin: 0 0 clamp(var(--c21-e-6), 5vw, var(--c21-e-8));
+  max-width: 640px;
+  font-family: var(--c21-fonte-display);
+  font-weight: 400;
+  font-size: clamp(var(--c21-t-xl), 6vw, var(--c21-t-2xl));
+  line-height: var(--c21-altura-apertada);
+  color: var(--c21-tinta);
+  text-wrap: pretty;
+}
+
+.pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(var(--c21-e-4), 4vw, var(--c21-e-8));
+}
+
+.pessoa {
+  flex: 1 1 300px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--c21-e-2);
+}
+
+.foto {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--c21-raio-md);
+  background: var(--c21-linha);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c21-tinta-suave);
+  font-size: var(--c21-t-xs);
+}
+
+.bio {
+  margin: 0;
+  font-size: var(--c21-t-base);
+  line-height: 1.58;
+  color: var(--c21-tinta);
+  text-wrap: pretty;
+}
+
+.fechamento {
+  margin: clamp(var(--c21-e-4), 4vw, var(--c21-e-6)) 0 0;
+  font-family: var(--c21-fonte-display);
+  font-size: clamp(var(--c21-t-md), 3vw, var(--c21-t-lg));
+  line-height: 1.2;
+  color: var(--c21-vermelho);
+}

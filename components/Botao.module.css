@@ -1,0 +1,22 @@
+.botao {
+  display: inline-block;
+  background: var(--c21-vermelho);
+  color: var(--c21-papel);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 1rem 2.4rem;
+  border-radius: var(--c21-raio-pilula);
+  box-shadow: 0 10px 24px -10px rgba(15, 40, 60, 0.6);
+  transition: transform 0.18s var(--c21-curva), background 0.18s ease;
+}
+
+.botao:hover {
+  background: var(--c21-acao-hover);
+  transform: translateY(-2px);
+}
+
+.botao:focus-visible {
+  outline: 3px solid var(--c21-cobalto);
+  outline-offset: 4px;
+}

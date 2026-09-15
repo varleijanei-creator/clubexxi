@@ -1,0 +1,18 @@
+.cabecalho {
+  display: flex;
+  align-items: center;
+  padding: var(--c21-e-3) var(--c21-e-3);
+  background: var(--c21-papel-fundo);
+  border-bottom: var(--c21-borda);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.logo {
+  height: 2.25rem;
+  width: auto;
+  display: block;
+}

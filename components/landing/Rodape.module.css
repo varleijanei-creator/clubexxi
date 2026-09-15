@@ -1,0 +1,52 @@
+.rodape {
+  padding: clamp(var(--c21-e-6), 6vw, var(--c21-e-8)) var(--c21-e-3) clamp(var(--c21-e-6), 6vw, var(--c21-e-8));
+  background: var(--c21-tinta);
+  color: var(--c21-papel-fundo);
+}
+
+.conteudo {
+  max-width: 1060px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--c21-e-3) var(--c21-e-6);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--c21-e-1);
+  font-size: 0.96875rem;
+  line-height: var(--c21-altura-normal);
+}
+
+.linkDestaque {
+  color: var(--c21-amarelo);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.linkDestaque:hover {
+  color: var(--c21-amarelo);
+  text-decoration: underline;
+}
+
+.link {
+  color: var(--c21-papel-fundo);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--c21-papel);
+  text-decoration: underline;
+}
+
+.legal {
+  margin: 0;
+  max-width: 340px;
+  font-size: var(--c21-t-xs);
+  line-height: var(--c21-altura-normal);
+  color: var(--c21-linha);
+}

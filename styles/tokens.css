@@ -1,0 +1,173 @@
+/* ============================================================
+   CLUBE 21 — TOKENS
+   Fonte única de verdade pra landing e pro /assinar.
+   Importar ANTES de qualquer outro CSS.
+   ============================================================ */
+
+:root {
+
+  /* ---------- CORES DA MARCA ----------
+     As cinco confirmadas pelo Varlei.                          */
+
+  --c21-vermelho:      #DA4928;  /* Missões, Il Dolce, títulos  */
+  --c21-laranja:       #D96E2E;  /* Comer Rezar Amar, pêssego   */
+  --c21-amarelo:       #F2DF7F;  /* Receita do mês              */
+  --c21-lilas:         #A9A2D0;
+  --c21-ceu:           #3BB5E1;  /* Baixo Astral, credencial    */
+
+  /* ---------- A PENDÊNCIA ----------
+     Cores que dominam as peças impressas mas NÃO estão
+     na paleta oficial. Valores aproximados dos PDFs.
+     Confirmar antes de usar em produção.                       */
+
+  --c21-cobalto:       #1E3FA0;  /* lettering, arcano, receita  */
+  --c21-rosa:          #F0919E;  /* Drink do mês                */
+  --c21-verde:         #66C93F;  /* Conta pra gente             */
+  --c21-limao:         #E8EFA8;  /* fundo da Receita            */
+
+  /* ---------- NEUTROS ----------
+     O creme vem do papel das peças, não de um default.         */
+
+  --c21-papel:         #F6F2E4;  /* fundo geral                 */
+  --c21-papel-fundo:   #EFE9D6;  /* blocos alternados           */
+  --c21-tinta:         #16130F;  /* texto — quase preto, quente */
+  --c21-tinta-suave:   #5A5348;  /* texto secundário            */
+  --c21-linha:         #D9D0BA;  /* divisórias, bordas finas    */
+
+  /* ---------- PAPÉIS SENTIMENTAIS ----------
+     Cada seção herda a cor da peça que representa.
+     É o que dá a sensação de folhear o envelope.               */
+
+  --c21-secao-carta:   var(--c21-amarelo);
+  --c21-secao-astro:   var(--c21-ceu);
+  --c21-secao-drink:   var(--c21-rosa);
+  --c21-secao-receita: var(--c21-limao);
+  --c21-secao-missao:  var(--c21-papel);
+
+  /* ---------- SEMÂNTICA DE INTERFACE ---------- */
+
+  --c21-acao:          var(--c21-vermelho);  /* CTA principal   */
+  --c21-acao-hover:    #B93A1E;
+  --c21-foco:          var(--c21-cobalto);   /* anel de foco    */
+  --c21-erro:          #B0281A;
+  --c21-sucesso:       #2E7D32;
+
+  /* ---------- TIPOGRAFIA ----------
+     As duas vêm do Adobe Fonts, inclusas no Creative Cloud.
+     Ativar num Web Project e colar o CSS no layout raiz.
+
+     Kit Typekit: https://use.typekit.net/zrw7ppl.css
+     ATENÇÃO: no CSS os nomes são minúsculos e com hífen —
+     "gelica" e "all-round-gothic". O nome comercial não funciona.
+
+     Gelica          → soft serif display, família Dave Rowland.
+                       Títulos de seção, números de preço,
+                       destaques. Medium e Regular.
+                       NÃO usar em texto longo: é display.
+     All Round Gothic → geométrica arredondada, Dharma Type.
+                       Corpo, formulário, navegação, botão.
+     Manuscrito      → NÃO é fonte. É o lettering do logo,
+                       desenhado por vocês, aplicado em SVG.
+                       Só assinatura e frase-âncora curta.      */
+
+  --c21-fonte-display: "gelica", Georgia, serif;
+  --c21-fonte-texto:   "nimbus-sans", system-ui, sans-serif;
+
+  /* Fallback enquanto o kit do Adobe não estiver ativo —
+     serve pro mockup no Claude Design, não pra produção.       */
+  --c21-fonte-display-fb: Georgia, "Times New Roman", serif;
+  --c21-fonte-texto-fb:   system-ui, -apple-system, sans-serif;
+
+  /* Escala — razão 1.25, base 17px.
+     Linha < 70 caracteres no corpo.                            */
+
+  --c21-t-xs:    0.75rem;   /* legendas, selos        */
+  --c21-t-sm:    0.875rem;  /* apoio de formulário    */
+  --c21-t-base:  1.0625rem; /* corpo                  */
+  --c21-t-md:    1.3125rem; /* destaque               */
+  --c21-t-lg:    1.75rem;   /* subtítulo              */
+  --c21-t-xl:    2.5rem;    /* título de seção        */
+  --c21-t-2xl:   3.75rem;   /* título de seção grande */
+  --c21-t-hero:  clamp(3rem, 11vw, 7.5rem);
+
+  --c21-altura-apertada: 1.05;  /* display              */
+  --c21-altura-normal:   1.55;  /* corpo                */
+
+  /* ---------- ESPAÇO ----------
+     Base 8. O respiro é o que segura a calma do Plumy.         */
+
+  --c21-e-1:   0.5rem;
+  --c21-e-2:   1rem;
+  --c21-e-3:   1.5rem;
+  --c21-e-4:   2rem;
+  --c21-e-6:   3rem;
+  --c21-e-8:   4rem;
+  --c21-e-12:  6rem;
+  --c21-e-16:  8rem;   /* entre seções, desktop */
+
+  --c21-largura-texto:  62ch;
+  --c21-largura-pagina: 1180px;
+
+  /* ---------- FORMA ----------
+     Raio grande e assimétrico lembra recorte de papel.
+     Nada de um raio único em tudo.                             */
+
+  --c21-raio-sm:    6px;    /* campos de formulário  */
+  --c21-raio-md:    14px;   /* cartões               */
+  --c21-raio-pilula: 999px; /* botões, selos         */
+
+  --c21-borda:      1.5px solid var(--c21-linha);
+  --c21-borda-forte: 2.5px solid var(--c21-tinta);
+
+  /* Sombra só onde uma peça está fisicamente sobre outra.
+     Não usar como decoração de cartão.                         */
+  --c21-sombra-peca: 0 12px 28px -12px rgba(22, 19, 15, 0.35);
+
+  /* ---------- ROTAÇÕES ----------
+     Papel nunca cai reto. Aplicar em peças, nunca em texto
+     de leitura nem em campo de formulário.                     */
+
+  --c21-torto-1:  -2.5deg;
+  --c21-torto-2:   1.75deg;
+  --c21-torto-3:  -1.25deg;
+
+  /* ---------- MOVIMENTO ----------
+     Um momento orquestrado na entrada. Só isso.                */
+
+  --c21-tempo-rapido: 180ms;
+  --c21-tempo-medio:  420ms;
+  --c21-tempo-lento:  900ms;
+  --c21-curva:        cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- ACESSIBILIDADE ---------- */
+
+*:focus-visible {
+  outline: 3px solid var(--c21-foco);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   REGRAS DE USO — valem pros dois lados
+
+   1. Fundo creme sempre. Branco puro nunca.
+   2. O manuscrito é assinatura, não fonte de trabalho.
+      Formulário inteiro em --c21-fonte-texto.
+   2b. Gelica é display. Passou de três linhas, troca
+      pra All Round Gothic.
+   3. Uma cor forte por seção. Duas brigam.
+   4. As peças impressas são o elemento visual. Não
+      inventar ilustração nova pra preencher espaço.
+   5. Rotação só em objeto-papel. Campo de input reto.
+   6. O checkout usa os mesmos tokens, com metade da
+      ousadia: mesma paleta, menos cor, zero rotação.
+      Confiança vem de previsibilidade.
+   ============================================================ */

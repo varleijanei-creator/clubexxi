@@ -14,6 +14,7 @@ import {
   formatarValor,
   useFormAssinatura,
   type FormaPagamento,
+  type Plano,
   type UpsellInfo,
 } from "./useFormAssinatura";
 
@@ -69,9 +70,12 @@ function Campo({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-zinc-800">
+      <label
+        htmlFor={id}
+        className="text-sm font-semibold text-[var(--c21-tinta)]"
+      >
         {label}
-        {obrigatorio && <span className="text-red-600"> *</span>}
+        {obrigatorio && <span className="text-[var(--c21-erro)]"> *</span>}
       </label>
       <input
         id={id}
@@ -85,12 +89,18 @@ function Campo({
         autoComplete={autoComplete}
         inputMode={inputMode}
         aria-invalid={Boolean(erro)}
-        className={`rounded border px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 ${
-          erro ? "border-red-500" : "border-zinc-300"
-        } ${readOnly ? "bg-zinc-100 text-zinc-600" : "bg-white"}`}
+        className={`rounded-[var(--c21-raio-sm)] border px-3 py-2 text-sm text-[var(--c21-tinta)] outline-none focus:border-[var(--c21-foco)] ${
+          erro ? "border-[var(--c21-erro)]" : "border-[var(--c21-linha)]"
+        } ${
+          readOnly
+            ? "bg-[var(--c21-papel-fundo)] text-[var(--c21-tinta-suave)]"
+            : "bg-[var(--c21-papel)]"
+        }`}
       />
-      {ajuda && !erro && <p className="text-xs text-zinc-500">{ajuda}</p>}
-      {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {ajuda && !erro && (
+        <p className="text-xs text-[var(--c21-tinta-suave)]">{ajuda}</p>
+      )}
+      {erro && <p className="text-xs text-[var(--c21-erro)]">{erro}</p>}
     </div>
   );
 }
@@ -118,17 +128,20 @@ function Select({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-zinc-800">
+      <label
+        htmlFor={id}
+        className="text-sm font-semibold text-[var(--c21-tinta)]"
+      >
         {label}
-        {obrigatorio && <span className="text-red-600"> *</span>}
+        {obrigatorio && <span className="text-[var(--c21-erro)]"> *</span>}
       </label>
       <select
         id={id}
         name={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`rounded border bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 ${
-          erro ? "border-red-500" : "border-zinc-300"
+        className={`rounded-[var(--c21-raio-sm)] border bg-[var(--c21-papel)] px-3 py-2 text-sm text-[var(--c21-tinta)] outline-none focus:border-[var(--c21-foco)] ${
+          erro ? "border-[var(--c21-erro)]" : "border-[var(--c21-linha)]"
         }`}
       >
         {comOpcaoVazia && <option value=""></option>}
@@ -138,8 +151,10 @@ function Select({
           </option>
         ))}
       </select>
-      {ajuda && !erro && <p className="text-xs text-zinc-500">{ajuda}</p>}
-      {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {ajuda && !erro && (
+        <p className="text-xs text-[var(--c21-tinta-suave)]">{ajuda}</p>
+      )}
+      {erro && <p className="text-xs text-[var(--c21-erro)]">{erro}</p>}
     </div>
   );
 }
@@ -163,7 +178,7 @@ function Botao({
         type={tipo}
         onClick={onClick}
         disabled={desabilitado}
-        className="text-sm font-medium text-zinc-700 underline underline-offset-2 hover:text-zinc-900 disabled:opacity-50"
+        className="text-sm font-medium text-[var(--c21-vermelho)] underline underline-offset-2 hover:text-[var(--c21-acao-hover)] disabled:opacity-50"
       >
         {children}
       </button>
@@ -175,7 +190,7 @@ function Botao({
       type={tipo}
       onClick={onClick}
       disabled={desabilitado}
-      className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-[var(--c21-raio-pilula)] bg-[var(--c21-acao)] px-4 py-2.5 text-sm font-bold text-[var(--c21-papel)] hover:bg-[var(--c21-acao-hover)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}
     </button>
@@ -209,32 +224,35 @@ function ModalUpsell({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--c21-tinta)]/40 p-4"
       onClick={onEscolherMensal}
     >
       <div
-        className="flex w-full max-w-md flex-col gap-4 rounded bg-white p-6"
+        className="flex w-full max-w-md flex-col gap-4 rounded-[var(--c21-raio-md)] bg-[var(--c21-papel)] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-base font-semibold text-zinc-900">
+          <h2
+            className="text-base font-normal text-[var(--c21-tinta)]"
+            style={{ fontFamily: "var(--c21-fonte-display)" }}
+          >
             Quer economizar no {info.mensal.nome}?
           </h2>
           <button
             type="button"
             onClick={onEscolherMensal}
             aria-label="Fechar"
-            className="text-zinc-500 hover:text-zinc-900"
+            className="text-[var(--c21-tinta-suave)] hover:text-[var(--c21-tinta)]"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex flex-col gap-2 rounded border border-zinc-300 p-3">
-          <p className="text-sm font-medium text-zinc-900">
+        <div className="flex flex-col gap-2 rounded-[var(--c21-raio-sm)] border border-[var(--c21-linha)] p-3">
+          <p className="text-sm font-medium text-[var(--c21-tinta)]">
             {info.mensal.nome}
           </p>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-[var(--c21-tinta-suave)]">
             {formatarValor(valorMensal)}/mês
           </p>
           <Botao variante="texto" onClick={onEscolherMensal}>
@@ -242,22 +260,22 @@ function ModalUpsell({
           </Botao>
         </div>
 
-        <div className="flex flex-col gap-2 rounded border border-zinc-900 p-3">
-          <p className="text-sm font-medium text-zinc-900">
+        <div className="flex flex-col gap-2 rounded-[var(--c21-raio-sm)] border-2 border-[var(--c21-tinta)] p-3">
+          <p className="text-sm font-medium text-[var(--c21-tinta)]">
             {info.trimestral.nome}
           </p>
-          <p className="text-sm font-medium text-zinc-900">
+          <p className="text-sm font-medium text-[var(--c21-tinta)]">
             {formatarValor(valorTrimestral)} a cada 3 meses
           </p>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-[var(--c21-tinta-suave)]">
             {formatarValor(valorMensalEquivalente)} por mês, cobrados a
             cada 3 meses
           </p>
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-[var(--c21-tinta-suave)]">
             Economize {formatarValor(economia)}
           </p>
           {info.mensal.familia === "pessego" && (
-            <p className="text-xs text-zinc-600">
+            <p className="text-xs text-[var(--c21-tinta-suave)]">
               {formatarValor(valorMensalEquivalente)} por carta — você
               paga o mesmo do plano Flor e leva o Pêssego
             </p>
@@ -300,8 +318,11 @@ function SeletorPagamento({
   ];
 
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold text-zinc-900">
+    <section className="flex flex-col gap-2 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
+      <h2
+        className="text-sm font-normal text-[var(--c21-tinta)]"
+        style={{ fontFamily: "var(--c21-fonte-display)", fontSize: "1.05rem" }}
+      >
         Forma de pagamento
       </h2>
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -313,22 +334,136 @@ function SeletorPagamento({
               type="button"
               onClick={() => onChange(o.valor)}
               aria-pressed={selecionado}
-              className={`flex flex-1 flex-col gap-1 rounded border p-3 text-left ${
+              className={`flex flex-1 flex-col gap-1 rounded-[var(--c21-raio-sm)] border p-3 text-left ${
                 selecionado
-                  ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900"
-                  : "border-zinc-300 bg-white"
+                  ? "border-[var(--c21-tinta)] bg-[var(--c21-papel-fundo)] ring-1 ring-[var(--c21-tinta)]"
+                  : "border-[var(--c21-linha)] bg-[var(--c21-papel)]"
               }`}
             >
-              <span className="text-sm font-medium text-zinc-900">
+              <span className="text-sm font-medium text-[var(--c21-tinta)]">
                 {selecionado ? "✓ " : ""}
                 {o.titulo}
               </span>
-              <span className="text-xs text-zinc-600">{o.texto}</span>
+              <span className="text-xs text-[var(--c21-tinta-suave)]">
+                {o.texto}
+              </span>
             </button>
           );
         })}
       </div>
     </section>
+  );
+}
+
+/**
+ * Mostra o ciclo trimestral ao lado do mensal, lado a lado, com o trimestral
+ * marcado como recomendado — visível assim que a pessoa chega com um plano
+ * selecionado (por URL ou por já ter escolhido na lista). Não substitui o
+ * ModalUpsell (que continua disparando de onde já dispara hoje, ao escolher
+ * um plano mensal na lista "trocar plano"): isto aqui é só apresentação, e
+ * troca de ciclo chama `selecionarPlano` diretamente, sem popup.
+ */
+function SeletorCiclo({
+  planos,
+  planoSelecionado,
+  ehBrasil,
+  onSelecionar,
+}: {
+  planos: Plano[];
+  planoSelecionado: Plano;
+  ehBrasil: boolean;
+  onSelecionar: (slug: string) => void;
+}) {
+  const familia = planoSelecionado.familia;
+  const trimestral = familia
+    ? planos.find((p) => p.familia === familia && p.ciclo === "trimestral")
+    : undefined;
+  const mensal = familia
+    ? planos.find((p) => p.familia === familia && p.ciclo === "mensal")
+    : undefined;
+
+  if (!trimestral || !mensal) return null;
+
+  const acrescimoMensal = ehBrasil
+    ? 0
+    : calcularAcrescimoInternacional(mensal.meses);
+  const acrescimoTrimestral = ehBrasil
+    ? 0
+    : calcularAcrescimoInternacional(trimestral.meses);
+  const valorMensal = mensal.valor + acrescimoMensal;
+  const valorTrimestral = trimestral.valor + acrescimoTrimestral;
+  const economia = valorMensal * 3 - valorTrimestral;
+  const cicloAtual = planoSelecionado.ciclo;
+
+  const opcoes: {
+    slug: string;
+    ciclo: string;
+    titulo: string;
+    recomendado?: boolean;
+    linhas: string[];
+  }[] = [
+    {
+      slug: trimestral.slug,
+      ciclo: "trimestral",
+      titulo: "Trimestral",
+      recomendado: true,
+      linhas: [
+        `${formatarValor(valorTrimestral)} a cada 3 meses`,
+        `Economize ${formatarValor(economia)}`,
+      ],
+    },
+    {
+      slug: mensal.slug,
+      ciclo: "mensal",
+      titulo: "Mensal",
+      linhas: [`${formatarValor(valorMensal)}/mês`],
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm font-semibold text-[var(--c21-tinta)]">
+        Forma de cobrança
+      </span>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {opcoes.map((o) => {
+          const selecionado = cicloAtual === o.ciclo;
+          return (
+            <button
+              key={o.slug}
+              type="button"
+              onClick={() => onSelecionar(o.slug)}
+              aria-pressed={selecionado}
+              className={`flex flex-1 flex-col gap-1 rounded-[var(--c21-raio-sm)] border p-3 text-left ${
+                selecionado
+                  ? "border-[var(--c21-tinta)] bg-[var(--c21-papel-fundo)] ring-1 ring-[var(--c21-tinta)]"
+                  : "border-[var(--c21-linha)] bg-[var(--c21-papel)]"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-medium text-[var(--c21-tinta)]">
+                  {selecionado ? "✓ " : ""}
+                  {o.titulo}
+                </span>
+                {o.recomendado && (
+                  <span className="rounded-[var(--c21-raio-pilula)] bg-[var(--c21-vermelho)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--c21-papel)]">
+                    Recomendado
+                  </span>
+                )}
+              </span>
+              {o.linhas.map((linha) => (
+                <span
+                  key={linha}
+                  className="text-xs text-[var(--c21-tinta-suave)]"
+                >
+                  {linha}
+                </span>
+              ))}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -357,39 +492,69 @@ export default function FormAssinatura({
       noValidate
     >
       {f.erroGeral && (
-        <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-[var(--c21-raio-sm)] border border-[var(--c21-erro)] bg-[var(--c21-papel-fundo)] px-3 py-2 text-sm text-[var(--c21-erro)]">
           {f.erroGeral}
         </div>
       )}
 
       {/* Plano */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Plano</h2>
+      <section className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
+        <h2
+          className="text-sm font-normal text-[var(--c21-tinta)]"
+          style={{ fontFamily: "var(--c21-fonte-display)", fontSize: "1.05rem" }}
+        >
+          Plano
+        </h2>
 
         {f.planos === null && !f.planosErro && (
-          <p className="text-sm text-zinc-500">Carregando planos…</p>
+          <p className="text-sm text-[var(--c21-tinta-suave)]">
+            Carregando planos…
+          </p>
         )}
         {f.planosErro && (
-          <p className="text-sm text-red-600">{f.planosErro}</p>
+          <p className="text-sm text-[var(--c21-erro)]">{f.planosErro}</p>
         )}
 
         {f.planos && f.planoSelecionado && !f.mostrarEscolhaPlanos && (
-          <div className="flex items-center justify-between rounded border border-zinc-300 px-3 py-2">
-            <div>
-              <p className="text-sm font-medium text-zinc-900">
-                {f.planoSelecionado.nome}
-              </p>
-              <p className="text-sm text-zinc-600">
-                {formatarPrecoCiclo(
-                  f.planoSelecionado.ciclo,
-                  f.valorComAcrescimo ?? f.planoSelecionado.valor,
-                )}
-              </p>
+          <div className="flex items-center gap-3 rounded-[var(--c21-raio-sm)] border border-[var(--c21-linha)] bg-[var(--c21-papel-fundo)] px-3 py-3">
+            <img
+              src="/clube21/pessego.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-10 w-10 shrink-0"
+            />
+            <div className="flex flex-1 items-center justify-between gap-3">
+              <div>
+                <p
+                  className="text-base font-normal text-[var(--c21-tinta)]"
+                  style={{ fontFamily: "var(--c21-fonte-display)" }}
+                >
+                  {f.planoSelecionado.nome}
+                </p>
+                <p className="text-sm text-[var(--c21-tinta-suave)]">
+                  {formatarPrecoCiclo(
+                    f.planoSelecionado.ciclo,
+                    f.valorComAcrescimo ?? f.planoSelecionado.valor,
+                  )}
+                  {!f.ehBrasil && f.acrescimoInternacional > 0 && (
+                    <> (já com + {formatarValor(f.acrescimoInternacional)} de envio internacional)</>
+                  )}
+                </p>
+              </div>
+              <Botao variante="texto" onClick={f.alternarEscolhaPlanos}>
+                trocar plano
+              </Botao>
             </div>
-            <Botao variante="texto" onClick={f.alternarEscolhaPlanos}>
-              trocar plano
-            </Botao>
           </div>
+        )}
+
+        {f.planos && f.planoSelecionado && !f.mostrarEscolhaPlanos && (
+          <SeletorCiclo
+            planos={f.planos}
+            planoSelecionado={f.planoSelecionado}
+            ehBrasil={f.ehBrasil}
+            onSelecionar={f.selecionarPlano}
+          />
         )}
 
         {f.planosMensais && f.mostrarEscolhaPlanos && (
@@ -403,23 +568,26 @@ export default function FormAssinatura({
               return (
                 <div
                   key={p.slug}
-                  className={`flex flex-col gap-3 rounded border p-4 ${
+                  className={`flex flex-col gap-3 rounded-[var(--c21-raio-md)] border p-4 ${
                     destaque
-                      ? "border-zinc-900 shadow-md sm:scale-105"
-                      : "border-zinc-300"
+                      ? "border-[var(--c21-tinta)] shadow-md sm:scale-105"
+                      : "border-[var(--c21-linha)]"
                   }`}
                 >
                   {destaque && (
-                    <span className="self-start rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white">
+                    <span className="self-start rounded-[var(--c21-raio-pilula)] bg-[var(--c21-tinta)] px-2 py-0.5 text-xs font-medium text-[var(--c21-papel)]">
                       Mais completo
                     </span>
                   )}
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-base font-semibold text-zinc-900">
+                    <span
+                      className="text-base font-normal text-[var(--c21-tinta)]"
+                      style={{ fontFamily: "var(--c21-fonte-display)" }}
+                    >
                       {emoji ? `${emoji} ` : ""}
                       {p.nome}
                     </span>
-                    <span className="whitespace-nowrap text-sm text-zinc-600">
+                    <span className="whitespace-nowrap text-sm text-[var(--c21-tinta-suave)]">
                       {formatarValor(
                         p.valor +
                           (f.ehBrasil ? 0 : calcularAcrescimoInternacional(p.meses)),
@@ -428,7 +596,9 @@ export default function FormAssinatura({
                     </span>
                   </div>
                   {descricao && (
-                    <p className="text-sm text-zinc-700">{descricao}</p>
+                    <p className="text-sm text-[var(--c21-tinta)]">
+                      {descricao}
+                    </p>
                   )}
                   <Botao onClick={() => f.escolherPlano(p.slug)}>
                     Quero o {p.nome}
@@ -437,7 +607,7 @@ export default function FormAssinatura({
               );
             })}
             {f.erros.plano && (
-              <p className="text-xs text-red-600">{f.erros.plano}</p>
+              <p className="text-xs text-[var(--c21-erro)]">{f.erros.plano}</p>
             )}
           </div>
         )}
@@ -470,8 +640,13 @@ export default function FormAssinatura({
       </section>
 
       {/* Dados pessoais */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Seus dados</h2>
+      <section className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
+        <h2
+          className="text-sm font-normal text-[var(--c21-tinta)]"
+          style={{ fontFamily: "var(--c21-fonte-display)", fontSize: "1.05rem" }}
+        >
+          Seus dados
+        </h2>
         <Campo
           id="nome"
           label="Nome completo"
@@ -516,8 +691,11 @@ export default function FormAssinatura({
       </section>
 
       {/* Endereço de entrega */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-zinc-900">
+      <section className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
+        <h2
+          className="text-sm font-normal text-[var(--c21-tinta)]"
+          style={{ fontFamily: "var(--c21-fonte-display)", fontSize: "1.05rem" }}
+        >
           Endereço de entrega
         </h2>
         <Select
@@ -531,7 +709,7 @@ export default function FormAssinatura({
           comOpcaoVazia={false}
         />
         {!f.ehBrasil && f.planoSelecionado && (
-          <p className="text-xs text-zinc-600">
+          <p className="rounded-[var(--c21-raio-sm)] bg-[var(--c21-papel-fundo)] px-3 py-2 text-xs font-medium text-[var(--c21-tinta)]">
             Envio internacional: + {formatarValor(f.acrescimoInternacional)}
             {f.planoSelecionado.meses > 1 &&
               ` (${formatarValor(ACRESCIMO_INTERNACIONAL_POR_MES)} por envelope)`}
@@ -612,13 +790,13 @@ export default function FormAssinatura({
         />
       </section>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-[var(--c21-tinta-suave)]">
         Ao assinar, você concorda com a nossa{" "}
         <Link
           href="/privacidade"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline underline-offset-2"
+          className="underline underline-offset-2 text-[var(--c21-vermelho)]"
         >
           Política de Privacidade
         </Link>
