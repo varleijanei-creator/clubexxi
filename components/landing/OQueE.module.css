@@ -43,3 +43,13 @@
   display: flex;
   justify-content: center;
 }
+
+.foto {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display: block;
+  border-radius: var(--c21-raio-md);
+  box-shadow: var(--c21-sombra-peca);
+  transform: rotate(1.4deg);
+}

@@ -9,15 +9,15 @@ import s from "./Duvidas.module.css";
 const PERGUNTAS: [string, string][] = [
   [
     "Moro fora do Brasil! Posso assinar?",
-    "Claro! Enviamos pro mundo todo e o frete já está incluso!",
+    "Claro! Enviamos pro mundo todo e o frete já vem incluso no valor de cada plano!",
   ],
   [
     "Como funciona a entrega?",
-    "Depois que você assina, a gente monta seu envelope à mão na semana da postagem e envia com rastreio, direto pro seu endereço.",
+    "Depois que você assina, a gente monta seu envelope à mão na semana da postagem e envia sem rastreio, direto pro seu endereço.",
   ],
   [
     "Posso cancelar quando quiser?",
-    "Pode, sim. É só mandar um e-mail pra gente em comercial.clube21@gmail.com que a gente cancela e te responde confirmando. A edição que você já pagou ainda é sua e chega normalmente — o cancelamento vale a partir da cobrança seguinte.",
+    "Pode, sim. É só mandar um e-mail pra gente em comercial@clubexxi.com.br que a gente cancela e te responde confirmando. A edição que você já pagou ainda é sua e chega normalmente — o cancelamento vale a partir da cobrança seguinte.",
   ],
   [
     "Posso trocar de plano depois?",
@@ -57,7 +57,7 @@ export default function Duvidas() {
           })}
         </div>
         <div className={s.cta}>
-          <Botao href="/assinar">Ainda quero assinar</Botao>
+          <Botao href="/assinar">Quero assinar!</Botao>
         </div>
       </div>
     </section>

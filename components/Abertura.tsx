@@ -47,8 +47,7 @@ export default function Abertura() {
       </p>
 
       <div className={s.acao}>
-        <Botao href="/assinar">Quero minha carta</Botao>
-        <p className={s.frete}>Frete incluso · enviamos pro mundo todo</p>
+        <Botao href="/assinar">Quero receber cartas!</Botao>
       </div>
     </section>
   );

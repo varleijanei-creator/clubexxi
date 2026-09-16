@@ -3,6 +3,8 @@ import CartaTaro from "@/components/landing/CartaTaro";
 import ComoFunciona from "@/components/landing/ComoFunciona";
 import Comunidade from "@/components/landing/Comunidade";
 import Duvidas from "@/components/landing/Duvidas";
+import FaixaFrete from "@/components/landing/FaixaFrete";
+import FaixaWhatsapp from "@/components/landing/FaixaWhatsapp";
 import OQueE from "@/components/landing/OQueE";
 import OQueVem from "@/components/landing/OQueVem";
 import Planos from "@/components/landing/Planos";
@@ -14,6 +16,7 @@ export default function Home() {
   return (
     <>
       <Abertura />
+      <FaixaFrete />
       <OQueE />
       <OQueVem />
       <CartaTaro />
@@ -23,6 +26,7 @@ export default function Home() {
       <ComoFunciona />
       <QuemCriou />
       <Duvidas />
+      <FaixaWhatsapp />
       <Rodape />
     </>
   );

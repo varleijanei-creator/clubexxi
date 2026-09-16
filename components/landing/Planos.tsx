@@ -10,7 +10,7 @@ export default function Planos() {
   return (
     <section className={s.secao}>
       <div className={s.conteudo}>
-        <h2 className={s.titulo}>Escolhe o seu plano</h2>
+        <h2 className={s.titulo}>Escolha o seu plano:</h2>
 
         <div className={s.planos}>
           <div className={`${s.plano} ${s.planoPessego}`}>

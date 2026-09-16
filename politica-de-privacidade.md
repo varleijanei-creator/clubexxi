@@ -52,11 +52,11 @@ A Lei Geral de Proteção de Dados (Lei 13.709/2018) te garante o direito de:
 - receber uma cópia dos seus dados;
 - retirar seu consentimento e cancelar a assinatura a qualquer momento.
 
-Pra exercer qualquer um desses direitos, é só mandar um e-mail pra **comercial.clube21@gmail.com**. A gente responde em até 15 dias.
+Pra exercer qualquer um desses direitos, é só mandar um e-mail pra **comercial@clubexxi.com.br**. A gente responde em até 15 dias.
 
 ## Cancelamento
 
-Você pode cancelar sua assinatura quando quiser, sem burocracia, mandando um e-mail pra **comercial.clube21@gmail.com**. O cancelamento vale a partir da próxima cobrança — a edição do mês que você já pagou ainda é sua e será enviada normalmente.
+Você pode cancelar sua assinatura quando quiser, sem burocracia, mandando um e-mail pra **comercial@clubexxi.com.br**. O cancelamento vale a partir da próxima cobrança — a edição do mês que você já pagou ainda é sua e será enviada normalmente.
 
 ## Cookies
 
@@ -74,4 +74,4 @@ Se a gente mudar alguma coisa aqui, a data lá no topo muda junto. Se for uma mu
 
 Qualquer dúvida sobre seus dados ou sobre esta política:
 
-**comercial.clube21@gmail.com**
+**comercial@clubexxi.com.br**

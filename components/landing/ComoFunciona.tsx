@@ -37,7 +37,7 @@ export default function ComoFunciona() {
             que a primeira carta que chega é a do mês seguinte :D
           </p>
           <div className={s.avisoCta}>
-            <Botao href="/assinar">Começar agora</Botao>
+            <Botao href="/assinar">Quero entrar agora!</Botao>
           </div>
         </div>
       </div>

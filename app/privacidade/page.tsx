@@ -151,10 +151,10 @@ export default function PoliticaDePrivacidadePage() {
             Pra exercer qualquer um desses direitos, é só mandar um e-mail
             pra{" "}
             <a
-              href="mailto:comercial.clube21@gmail.com"
+              href="mailto:comercial@clubexxi.com.br"
               className="underline underline-offset-2"
             >
-              comercial.clube21@gmail.com
+              comercial@clubexxi.com.br
             </a>
             . A gente responde em até 15 dias.
           </p>
@@ -165,10 +165,10 @@ export default function PoliticaDePrivacidadePage() {
             Você pode cancelar sua assinatura quando quiser, sem burocracia,
             mandando um e-mail pra{" "}
             <a
-              href="mailto:comercial.clube21@gmail.com"
+              href="mailto:comercial@clubexxi.com.br"
               className="underline underline-offset-2"
             >
-              comercial.clube21@gmail.com
+              comercial@clubexxi.com.br
             </a>
             . O cancelamento vale a partir da próxima cobrança — a edição do
             mês que você já pagou ainda é sua e será enviada normalmente.
@@ -203,10 +203,10 @@ export default function PoliticaDePrivacidadePage() {
           <p>
             <strong>
               <a
-                href="mailto:comercial.clube21@gmail.com"
+                href="mailto:comercial@clubexxi.com.br"
                 className="underline underline-offset-2"
               >
-                comercial.clube21@gmail.com
+                comercial@clubexxi.com.br
               </a>
             </strong>
           </p>

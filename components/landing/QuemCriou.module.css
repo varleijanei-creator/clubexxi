@@ -36,13 +36,11 @@
 .foto {
   width: 100%;
   aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: 50% 22%;
   border-radius: var(--c21-raio-md);
-  background: var(--c21-linha);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--c21-tinta-suave);
-  font-size: var(--c21-t-xs);
+  display: block;
+  box-shadow: var(--c21-sombra-peca);
 }
 
 .bio {

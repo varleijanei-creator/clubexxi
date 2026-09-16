@@ -17,11 +17,20 @@ export default function OQueE() {
           <p className={s.paragrafo}>
             Todo mês, montamos à mão um envelope recheado de histórias reais,
             tarôzinho, horóscopo, receitas e muito mais, e mandamos direto pra
-            sua caixa de correio. É sobre lembrar, mês a mês, que você merece
-            viver com mais gosto.
+            sua caixa de correio.{" "}
+            <strong>
+              É sobre lembrar, mês a mês, que você merece viver com mais
+              gosto.
+            </strong>
           </p>
         </div>
-        <div className={s.imagem}>{/* TODO: imagem */}</div>
+        <div className={s.imagem}>
+          <img
+            src="/clube21/Cartas mesa.jpeg"
+            alt="Envelopes do Clube 21 com selo de pêssego"
+            className={s.foto}
+          />
+        </div>
       </div>
     </section>
   );

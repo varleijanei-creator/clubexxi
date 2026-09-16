@@ -132,6 +132,10 @@
   color: var(--c21-tinta);
 }
 
+.planoLista span::before {
+  content: "– ";
+}
+
 .planoAcao {
   margin-top: auto;
   display: flex;

@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://clubexxi.com.br"),
-  title: "Clube 21 — uma carta sua, todo mês",
+  title: "Clube 21 — por uma vida mais deliciosa",
   description:
     "Clube de correspondência por assinatura. Todo mês um envelope de papel na sua casa. Frete incluso, enviamos pro mundo todo.",
   openGraph: {

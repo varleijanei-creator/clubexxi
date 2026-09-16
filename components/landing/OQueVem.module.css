@@ -176,6 +176,10 @@
   text-wrap: pretty;
 }
 
+.listaDestaque p::before {
+  content: "– ";
+}
+
 .destaqueImagens {
   flex: 0 1 230px;
   min-width: 190px;
@@ -202,10 +206,37 @@
   justify-content: center;
 }
 
+.faixaFechamento {
+  margin-top: clamp(var(--c21-e-6), 5vw, var(--c21-e-8));
+  background: color-mix(in srgb, var(--c21-vermelho) 75%, var(--c21-papel) 25%);
+  border-radius: var(--c21-raio-md);
+  padding: clamp(var(--c21-e-3), 3vw, var(--c21-e-4));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--c21-e-3);
+}
+
+.fotoCaixaCorreio {
+  width: clamp(3rem, 6vw, 4.5rem);
+  height: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
+.fotoLettering {
+  width: clamp(7rem, 16vw, 11rem);
+  height: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
 .fechamento {
-  margin: clamp(var(--c21-e-6), 5vw, var(--c21-e-8)) 0 0;
+  margin: 0;
   font-family: var(--c21-fonte-display);
-  font-size: clamp(var(--c21-t-lg), 3.6vw, var(--c21-t-xl));
+  font-size: clamp(var(--c21-t-md), 3vw, var(--c21-t-lg));
   line-height: 1.2;
-  color: var(--c21-vermelho);
+  color: var(--c21-tinta);
+  text-align: center;
 }

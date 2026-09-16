@@ -7,13 +7,22 @@ export default function Botao({
   href,
   children,
   className,
+  target,
+  rel,
 }: {
   href: string;
   children: ReactNode;
   className?: string;
+  target?: string;
+  rel?: string;
 }) {
   return (
-    <Link href={href} className={className ? `${s.botao} ${className}` : s.botao}>
+    <Link
+      href={href}
+      target={target}
+      rel={rel}
+      className={className ? `${s.botao} ${className}` : s.botao}
+    >
       {children}
     </Link>
   );

@@ -57,3 +57,13 @@
 .cta {
   margin-top: var(--c21-e-2);
 }
+
+.foto {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  display: block;
+  border-radius: var(--c21-raio-md);
+  box-shadow: 0 16px 36px rgba(22, 19, 15, 0.22);
+  transform: rotate(-1.8deg);
+}

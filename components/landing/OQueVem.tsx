@@ -107,6 +107,7 @@ export default function OQueVem() {
               <h3 className={s.cartaoTitulo}>Baixo Astral do Mês</h3>
               <p className={s.cartaoTexto}>
                 Quando um de nós passa por um perrengue e conta sem filtro.
+                Pra você dar boas risadas!
               </p>
             </div>
           </div>
@@ -142,10 +143,10 @@ export default function OQueVem() {
             </div>
             <div className={s.maoNaMassaTexto}>
               <h3 className={`${s.cartaoTitulo} ${s.tituloVermelho}`}>Mão na Massa</h3>
-              <p className={s.cartaoTexto}>Um drink do mês, com receita completa.</p>
               <p className={s.cartaoTexto}>
-                Uma receita do mês, doce ou salgada, pra fazer sozinha ou com
-                uma amiga.
+                Todo mês algo prazeroso e temático pra você fazer: uma
+                receita, um drink, uma cerâmica fria... sempre algo especial
+                :)
               </p>
             </div>
           </div>
@@ -194,11 +195,25 @@ export default function OQueVem() {
             />
           </div>
           <div className={s.destaqueCta}>
-            <Botao href="/assinar">Quero receber o meu</Botao>
+            <Botao href="/assinar">Quero fazer parte do clube!</Botao>
           </div>
         </div>
 
-        <p className={s.fechamento}>E o melhor: enviamos pro mundo todo!</p>
+        <div className={s.faixaFechamento}>
+          <img
+            src="/clube21/caixa de correio.png"
+            alt=""
+            aria-hidden="true"
+            className={s.fotoCaixaCorreio}
+          />
+          <p className={s.fechamento}>E o melhor: enviamos pro mundo todo!</p>
+          <img
+            src="/clube21/entregamos pro mundo todo.png"
+            alt=""
+            aria-hidden="true"
+            className={s.fotoLettering}
+          />
+        </div>
       </div>
     </section>
   );

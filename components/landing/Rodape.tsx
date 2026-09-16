@@ -12,17 +12,17 @@ export default function Rodape() {
             Instagram @clubexxi
           </a>
           <a
-            href="mailto:comercial.clube21@gmail.com"
+            href="mailto:comercial@clubexxi.com.br"
             className={s.linkDestaque}
           >
-            comercial.clube21@gmail.com
+            comercial@clubexxi.com.br
           </a>
           <a href="/privacidade" className={s.link}>
             Política de privacidade
           </a>
         </div>
         <p className={s.legal}>
-          61.685.219 VARLEI JOSE JANEI · CNPJ 61.685.219/0001-66 · Brasil
+          CNPJ 61.685.219/0001-66 · São Carlos - SP / Brasil
         </p>
       </div>
     </footer>

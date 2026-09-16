@@ -29,10 +29,16 @@ export default function PorQueCartas() {
             conectando com o lado feliz e doce da vida.
           </p>
           <div className={s.cta}>
-            <Botao href="/assinar">Quero minha carta</Botao>
+            <Botao href="/assinar">Quero uma vida mais doce!</Botao>
           </div>
         </div>
-        <div className={s.imagem}>{/* TODO: imagem */}</div>
+        <div className={s.imagem}>
+          <img
+            src="/clube21/toalha de mesa.png"
+            alt="Toalha de mesa do Clube 21"
+            className={s.foto}
+          />
+        </div>
       </div>
     </section>
   );

@@ -1,0 +1,24 @@
+.secao {
+  padding: clamp(var(--c21-e-8), 10vw, 7.5rem) var(--c21-e-3);
+  background: var(--c21-papel);
+  text-align: center;
+}
+
+.conteudo {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--c21-e-4);
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--c21-fonte-display);
+  font-weight: 400;
+  font-size: clamp(var(--c21-t-lg), 4vw, var(--c21-t-xl));
+  line-height: var(--c21-altura-apertada);
+  color: var(--c21-vermelho);
+  text-wrap: pretty;
+}

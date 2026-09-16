@@ -1,0 +1,12 @@
+.faixa {
+  padding: var(--c21-e-2) var(--c21-e-3);
+  background: var(--c21-vermelho);
+  text-align: center;
+}
+
+.texto {
+  margin: 0;
+  font-size: var(--c21-t-sm);
+  font-weight: 700;
+  color: var(--c21-papel);
+}
