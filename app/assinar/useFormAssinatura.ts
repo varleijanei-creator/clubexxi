@@ -119,7 +119,7 @@ type CepStatus = "ocioso" | "carregando" | "ok" | "erro";
 function validarCampos(
   campos: CamposForm,
   planoSlug: string | null,
-  cepGenerico: boolean,
+  bairroObrigatorio: boolean,
   codigoIndicacaoInvalido: boolean,
 ): Record<string, string> {
   const erros: Record<string, string> = {};
@@ -148,8 +148,6 @@ function validarCampos(
   if (ehBrasil) {
     const cep = apenasDigitos(campos.cep);
     if (cep.length !== 8) erros.cep = "CEP deve ter 8 dígitos";
-    else if (cepGenerico)
-      erros.cep = "Esse CEP é o geral da cidade. Informe o CEP da sua rua";
   } else {
     const cep = campos.cep.trim();
     if (cep.length < 3 || cep.length > 12)
@@ -158,7 +156,11 @@ function validarCampos(
 
   if (!campos.logradouro.trim()) erros.logradouro = "Informe o logradouro";
   if (!campos.numero.trim()) erros.numero = "Informe o número";
-  if (!campos.bairro.trim()) erros.bairro = "Informe o bairro";
+  // Bairro só é obrigatório quando veio confiável da consulta de CEP — em
+  // cidade com CEP único (sem bairro no ViaCEP) ou endereço internacional,
+  // fica opcional (coluna enderecos.bairro aceita null).
+  if (bairroObrigatorio && !campos.bairro.trim())
+    erros.bairro = "Informe o bairro";
   if (!campos.cidade.trim()) erros.cidade = "Informe a cidade";
 
   if (ehBrasil) {
@@ -213,8 +215,17 @@ export function useFormAssinatura(
 
   const [cepStatus, setCepStatus] = useState<CepStatus>("ocioso");
   const [cepMensagem, setCepMensagem] = useState<string | null>(null);
-  const [cepGenerico, setCepGenerico] = useState(false);
-  const [enderecoBloqueado, setEnderecoBloqueado] = useState(false);
+  // Aviso não-bloqueante (cidade com CEP único) — diferente de cepMensagem,
+  // que é erro do campo CEP em si (não encontrado / falha de rede).
+  const [enderecoAviso, setEnderecoAviso] = useState<string | null>(null);
+  // Cada campo trava (readOnly) só quando a consulta de CEP devolveu um
+  // valor confiável pra ele — diferente entre si porque CEP único devolve
+  // cidade/UF mas pode vir sem logradouro e/ou bairro.
+  const [logradouroBloqueado, setLogradouroBloqueado] = useState(false);
+  const [bairroBloqueado, setBairroBloqueado] = useState(false);
+  const [cidadeUfBloqueado, setCidadeUfBloqueado] = useState(false);
+  // "Sem número": preenche e trava o campo com "S/N".
+  const [semNumero, setSemNumero] = useState(false);
 
   // Enquanto a pessoa não mexer no país do endereço, ele segue sugerido pelo
   // país do telefone (mesmo os dois campos sendo independentes). No momento
@@ -495,8 +506,10 @@ export function useFormAssinatura(
     atualizarCampo("pais", codigo);
     setCepStatus("ocioso");
     setCepMensagem(null);
-    setCepGenerico(false);
-    setEnderecoBloqueado(false);
+    setEnderecoAviso(null);
+    setLogradouroBloqueado(false);
+    setBairroBloqueado(false);
+    setCidadeUfBloqueado(false);
     limparErroChave("cep");
     limparErroChave("uf");
   }
@@ -528,13 +541,15 @@ export function useFormAssinatura(
     const formatado = formatarCEP(valor);
     setCampos((atual) => ({ ...atual, cep: formatado }));
     limparErroCampo("cep");
-    setCepGenerico(false);
+    setEnderecoAviso(null);
 
     const digitos = apenasDigitos(formatado);
     if (digitos.length < 8) {
       setCepStatus("ocioso");
       setCepMensagem(null);
-      setEnderecoBloqueado(false);
+      setLogradouroBloqueado(false);
+      setBairroBloqueado(false);
+      setCidadeUfBloqueado(false);
       return;
     }
 
@@ -546,23 +561,22 @@ export function useFormAssinatura(
       const dados = await res.json();
 
       if (dados.erro) {
+        // CEP não encontrado: nunca trava — libera tudo pra digitação manual.
         setCepStatus("erro");
-        setCepMensagem("CEP não encontrado");
-        setEnderecoBloqueado(false);
+        setCepMensagem("CEP não encontrado. Preencha o endereço manualmente.");
+        setLogradouroBloqueado(false);
+        setBairroBloqueado(false);
+        setCidadeUfBloqueado(false);
         return;
       }
 
-      if (!dados.logradouro) {
-        // CEP genérico do município (final -000): o Asaas recusa na hora do
-        // pagamento. Bloqueia aqui pra pessoa não descobrir só no fim do fluxo.
-        setCepStatus("erro");
-        setCepGenerico(true);
-        setCepMensagem(
-          "Esse CEP é o geral da cidade. Informe o CEP da sua rua",
-        );
-        setEnderecoBloqueado(false);
-        return;
-      }
+      // Cidade com CEP único (geral do município) devolve localidade/uf mas
+      // pode vir sem logradouro e/ou bairro — cada campo trava só quando a
+      // consulta realmente devolveu valor pra ele. Cidade/UF sempre vêm,
+      // mesmo nesse caso, e por isso sempre são aplicadas (diferente de
+      // antes, que pulava esse preenchimento inteiro quando faltava rua).
+      const temLogradouro = Boolean(dados.logradouro);
+      const temBairro = Boolean(dados.bairro);
 
       setCampos((atual) => ({
         ...atual,
@@ -575,16 +589,35 @@ export function useFormAssinatura(
       limparErroCampo("bairro");
       limparErroCampo("cidade");
       limparErroCampo("uf");
+
+      setLogradouroBloqueado(temLogradouro);
+      setBairroBloqueado(temBairro);
+      setCidadeUfBloqueado(Boolean(dados.localidade));
+
       setCepStatus("ok");
       setCepMensagem(null);
-      setEnderecoBloqueado(true);
+      setEnderecoAviso(
+        !temLogradouro || !temBairro
+          ? "Sua cidade usa um CEP único. Preencha a rua e o bairro."
+          : null,
+      );
 
-      document.getElementById("numero")?.focus();
+      document.getElementById(temLogradouro ? "numero" : "logradouro")?.focus();
     } catch {
       setCepStatus("erro");
       setCepMensagem("Não foi possível consultar o CEP. Preencha manualmente.");
-      setEnderecoBloqueado(false);
+      setLogradouroBloqueado(false);
+      setBairroBloqueado(false);
+      setCidadeUfBloqueado(false);
     }
+  }
+
+  function alternarSemNumero() {
+    setSemNumero((atual) => {
+      const novo = !atual;
+      atualizarCampo("numero", novo ? "S/N" : "");
+      return novo;
+    });
   }
 
   function primeiroCampoComErro(erros: Record<string, string>): string | null {
@@ -623,7 +656,7 @@ export function useFormAssinatura(
     const errosValidacao = validarCampos(
       campos,
       planoEfetivo,
-      cepGenerico,
+      bairroBloqueado,
       codigoIndicacaoStatus === "erro",
     );
     if (Object.keys(errosValidacao).length > 0) {
@@ -652,7 +685,7 @@ export function useFormAssinatura(
           logradouro: campos.logradouro.trim(),
           numero: campos.numero.trim(),
           complemento: campos.complemento.trim() || undefined,
-          bairro: campos.bairro.trim(),
+          bairro: campos.bairro.trim() || undefined,
           cidade: campos.cidade.trim(),
           uf: ehBrasil ? campos.uf.trim().toUpperCase() : campos.uf.trim(),
           pais: campos.pais,
@@ -721,6 +754,8 @@ export function useFormAssinatura(
     atualizarPais,
     atualizarUf,
     atualizarCEP,
+    alternarSemNumero,
+    semNumero,
 
     afiliadosMenu,
     mostrarMenuOrigem,
@@ -732,7 +767,10 @@ export function useFormAssinatura(
 
     cepStatus,
     cepMensagem,
-    enderecoBloqueado,
+    enderecoAviso,
+    logradouroBloqueado,
+    bairroBloqueado,
+    cidadeUfBloqueado,
 
     erros,
     erroGeral,

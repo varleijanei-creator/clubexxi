@@ -52,7 +52,7 @@ type Endereco = {
   logradouro: string;
   numero: string;
   complemento: string | null;
-  bairro: string;
+  bairro: string | null;
   cidade: string;
   uf: string;
   pais: string;
@@ -118,9 +118,11 @@ function validarEntrada(
   } else if (cep.length < 3 || cep.length > 12) {
     erros.cep = "Código postal deve ter de 3 a 12 caracteres";
   }
+  // Bairro é opcional — a coluna enderecos.bairro aceita null. Cidades com
+  // CEP único (geral do município, sem logradouro/bairro no ViaCEP) não têm
+  // como preencher isso; logradouro e número continuam sempre obrigatórios.
   if (!logradouro) erros.logradouro = "Informe o logradouro";
   if (!numero) erros.numero = "Informe o número";
-  if (!bairro) erros.bairro = "Informe o bairro";
   if (!cidade) erros.cidade = "Informe a cidade";
   if (ehBrasil) {
     if (!/^[A-Z]{2}$/.test(uf)) erros.uf = "UF inválida";
@@ -160,7 +162,7 @@ function validarEntrada(
         logradouro,
         numero,
         complemento: texto(b.complemento) || null,
-        bairro,
+        bairro: bairro || null,
         cidade,
         uf,
         pais,
@@ -215,15 +217,19 @@ function telefoneAsaas(pessoais: Pessoais): string | undefined {
 
 /**
  * CEP fixo (Av. Paulista) usado no cadastro do cliente no Asaas quando o
- * endereço de entrega é fora do Brasil. Testado direto no sandbox: postalCode
- * é obrigatório em customerData e é validado contra a base real dos Correios
- * — nem um CEP de 8 dígitos inventado passa ("O campo postalCode é
- * inválido"), e não existe campo de país. `city` enviado à parte também é
- * ignorado (Asaas sempre deriva a cidade a partir do postalCode). Não tem
- * como representar um endereço internacional de verdade nesse campo; o
- * endereço real de entrega continua correto em pedidos.dados_json/enderecos,
- * que é o que importa pra remessa da carta. Sem efeito em nota fiscal — está
- * desligada (config_fiscal.ativo = false).
+ * endereço de entrega é fora do Brasil — não existe CEP real pra mandar
+ * nesse caso, e não existe campo de país em customerData. Testado direto no
+ * sandbox: postalCode é obrigatório em customerData/POST-v3-customers e é
+ * validado contra a base real dos Correios, mas só rejeita CEP que não
+ * existe de verdade ("O campo postalCode é inválido"). Um CEP -000 real
+ * (geral de município, CEP único) passa normalmente nos dois endpoints que
+ * este projeto usa — por isso ele NÃO usa esse placeholder, é mandado como
+ * está (ver `cepAsaas`). `city` enviado à parte também é ignorado (Asaas
+ * sempre deriva a cidade a partir do postalCode). Não tem como representar
+ * um endereço internacional de verdade nesse campo; o endereço real de
+ * entrega continua correto em pedidos.dados_json/enderecos, que é o que
+ * importa pra remessa da carta. Sem efeito em nota fiscal — está desligada
+ * (config_fiscal.ativo = false).
  */
 const CEP_ASAAS_INTERNACIONAL = "01310100";
 
@@ -324,7 +330,10 @@ async function criarPedidoPix(params: {
         address: endereco.logradouro,
         addressNumber: endereco.numero,
         complement: endereco.complemento ?? undefined,
-        province: endereco.bairro,
+        // POST /v3/customers: province é opcional (testado no sandbox — cliente
+        // é criado normalmente sem esse campo). Sem "Centro" aqui, diferente do
+        // checkout hospedado abaixo, que exige o campo.
+        province: endereco.bairro ?? undefined,
         postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
       });
       clienteId = criado.id;
@@ -649,10 +658,19 @@ export async function POST(request: Request) {
     // - phone: opcional. Só dígitos, sem máscara (ex. do schema: "4738010919"),
     //   e só faz sentido pra telefone do Brasil — ver telefoneAsaas().
     // - postalCode: 8 dígitos, sem máscara, obrigatório e validado contra a
-    //   base dos Correios (CEP genérico de cidade, final -000, é recusado).
-    //   Pra fora do Brasil não tem CEP real pra mandar — usa o placeholder
-    //   fixo CEP_ASAAS_INTERNACIONAL. O endereço de entrega de verdade está
-    //   em pedidos.dados_json/enderecos, não aqui.
+    //   base dos Correios — mas testado direto no sandbox: só rejeita CEP que
+    //   não existe de verdade ("O campo postalCode é inválido"). CEP genérico
+    //   de município (final -000, CEP único de cidade pequena) é aceito
+    //   normalmente, é mandado como está. Pra fora do Brasil não tem CEP real
+    //   pra mandar — usa o placeholder fixo CEP_ASAAS_INTERNACIONAL. O
+    //   endereço de entrega de verdade está em pedidos.dados_json/enderecos,
+    //   não aqui.
+    // - province: obrigatório aqui (testado no sandbox: "O campo province deve
+    //   ser informado." quando omitido) — diferente de POST /v3/customers, que
+    //   aceita sem. Quando o bairro vier vazio (CEP único sem bairro no ViaCEP,
+    //   ou endereço internacional sem bairro preenchido), manda "Centro" só
+    //   nessa chamada — nunca grava "Centro" em pedidos.dados_json nem em
+    //   enderecos, que continuam com o bairro real (ou null).
     customerData: {
       name: pessoais.nome,
       email: pessoais.email,
@@ -661,7 +679,7 @@ export async function POST(request: Request) {
       address: endereco.logradouro,
       addressNumber: endereco.numero,
       complement: endereco.complemento ?? undefined,
-      province: endereco.bairro,
+      province: endereco.bairro || "Centro",
       postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
     },
     subscription: {

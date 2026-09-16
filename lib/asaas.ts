@@ -116,7 +116,7 @@ export type DadosClienteAsaas = {
   address: string;
   addressNumber: string;
   complement?: string;
-  province: string;
+  province?: string;
   postalCode: string;
 };
 

@@ -761,6 +761,11 @@ export default function FormAssinatura({
           inputMode={f.ehBrasil ? "numeric" : "text"}
           ajuda={f.cepStatus === "carregando" ? "Buscando CEP…" : undefined}
         />
+        {f.enderecoAviso && (
+          <p className="rounded-[var(--c21-raio-sm)] bg-[var(--c21-papel-fundo)] px-3 py-2 text-xs font-medium text-[var(--c21-tinta)]">
+            {f.enderecoAviso}
+          </p>
+        )}
         <Campo
           id="logradouro"
           label="Logradouro"
@@ -768,17 +773,29 @@ export default function FormAssinatura({
           onChange={(v) => f.atualizarCampo("logradouro", v)}
           erro={f.erros.logradouro}
           obrigatorio
-          readOnly={f.enderecoBloqueado}
+          readOnly={f.logradouroBloqueado}
         />
         <div className="grid grid-cols-2 gap-3">
-          <Campo
-            id="numero"
-            label="Número"
-            value={f.campos.numero}
-            onChange={(v) => f.atualizarCampo("numero", v)}
-            erro={f.erros.numero}
-            obrigatorio
-          />
+          <div className="flex flex-col gap-1">
+            <Campo
+              id="numero"
+              label="Número"
+              value={f.campos.numero}
+              onChange={(v) => f.atualizarCampo("numero", v)}
+              erro={f.erros.numero}
+              obrigatorio
+              readOnly={f.semNumero}
+            />
+            <label className="flex items-center gap-2 text-xs text-[var(--c21-tinta-suave)]">
+              <input
+                type="checkbox"
+                checked={f.semNumero}
+                onChange={f.alternarSemNumero}
+                className="h-4 w-4 rounded border-[var(--c21-linha)]"
+              />
+              Sem número
+            </label>
+          </div>
           <Campo
             id="complemento"
             label="Complemento"
@@ -793,8 +810,8 @@ export default function FormAssinatura({
           value={f.campos.bairro}
           onChange={(v) => f.atualizarCampo("bairro", v)}
           erro={f.erros.bairro}
-          obrigatorio
-          readOnly={f.enderecoBloqueado}
+          obrigatorio={f.bairroBloqueado}
+          readOnly={f.bairroBloqueado}
         />
         <div className="grid grid-cols-2 gap-3">
           <Campo
@@ -804,7 +821,7 @@ export default function FormAssinatura({
             onChange={(v) => f.atualizarCampo("cidade", v)}
             erro={f.erros.cidade}
             obrigatorio
-            readOnly={f.enderecoBloqueado}
+            readOnly={f.cidadeUfBloqueado}
           />
           <Campo
             id="uf"
@@ -813,7 +830,7 @@ export default function FormAssinatura({
             onChange={f.atualizarUf}
             erro={f.erros.uf}
             obrigatorio
-            readOnly={f.enderecoBloqueado}
+            readOnly={f.cidadeUfBloqueado}
           />
         </div>
         <Campo
