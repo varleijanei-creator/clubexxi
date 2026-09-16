@@ -1,10 +1,6 @@
 import Link from "next/link";
 
-import { ACRESCIMO_INTERNACIONAL_POR_MES } from "@/lib/precos";
-
 import s from "./Planos.module.css";
-
-const AVISO_INTERNACIONAL = `Assinaturas internacionais: + R$ ${ACRESCIMO_INTERNACIONAL_POR_MES} por envelope.`;
 
 export default function Planos() {
   return (
@@ -48,7 +44,6 @@ export default function Planos() {
               <Link href="/assinar?plano=pessego" className={s.botaoPrimario}>
                 Quero o Plano Pêssego
               </Link>
-              <span className={s.planoAviso}>{AVISO_INTERNACIONAL}</span>
             </div>
           </div>
 
@@ -68,7 +63,6 @@ export default function Planos() {
               <Link href="/assinar?plano=flor" className={s.botaoSecundario}>
                 Quero o Plano Flor
               </Link>
-              <span className={s.planoAvisoSecundario}>{AVISO_INTERNACIONAL}</span>
             </div>
           </div>
 
@@ -88,7 +82,6 @@ export default function Planos() {
               <Link href="/assinar?plano=semente" className={s.botaoSecundario}>
                 Quero o Plano Semente
               </Link>
-              <span className={s.planoAvisoSecundario}>{AVISO_INTERNACIONAL}</span>
             </div>
           </div>
         </div>

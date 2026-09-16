@@ -5,10 +5,6 @@ import type { ReactNode } from "react";
 import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 
 import { PAISES } from "@/lib/paises";
-import {
-  ACRESCIMO_INTERNACIONAL_POR_MES,
-  calcularAcrescimoInternacional,
-} from "@/lib/precos";
 
 import {
   formatarPrecoCiclo,
@@ -223,26 +219,15 @@ function Botao({
 
 function ModalUpsell({
   info,
-  ehBrasil,
   onEscolherMensal,
   onEscolherTrimestral,
 }: {
   info: UpsellInfo;
-  ehBrasil: boolean;
   onEscolherMensal: () => void;
   onEscolherTrimestral: () => void;
 }) {
-  // Mesma fórmula do servidor: R$ 20 por envelope, por mês do ciclo. Reaberto
-  // com país já não-BR (ex.: "trocar plano" depois de escolher Portugal),
-  // então precisa refletir o acréscimo igual ao resto da tela.
-  const acrescimoMensal = ehBrasil
-    ? 0
-    : calcularAcrescimoInternacional(info.mensal.meses);
-  const acrescimoTrimestral = ehBrasil
-    ? 0
-    : calcularAcrescimoInternacional(info.trimestral.meses);
-  const valorMensal = info.mensal.valor + acrescimoMensal;
-  const valorTrimestral = info.trimestral.valor + acrescimoTrimestral;
+  const valorMensal = info.mensal.valor;
+  const valorTrimestral = info.trimestral.valor;
   const valorMensalEquivalente = valorTrimestral / 3;
   const economia = valorMensal * 3 - valorTrimestral;
 
@@ -390,12 +375,10 @@ function SeletorPagamento({
 function SeletorCiclo({
   planos,
   planoSelecionado,
-  ehBrasil,
   onSelecionar,
 }: {
   planos: Plano[];
   planoSelecionado: Plano;
-  ehBrasil: boolean;
   onSelecionar: (slug: string) => void;
 }) {
   const familia = planoSelecionado.familia;
@@ -408,14 +391,8 @@ function SeletorCiclo({
 
   if (!trimestral || !mensal) return null;
 
-  const acrescimoMensal = ehBrasil
-    ? 0
-    : calcularAcrescimoInternacional(mensal.meses);
-  const acrescimoTrimestral = ehBrasil
-    ? 0
-    : calcularAcrescimoInternacional(trimestral.meses);
-  const valorMensal = mensal.valor + acrescimoMensal;
-  const valorTrimestral = trimestral.valor + acrescimoTrimestral;
+  const valorMensal = mensal.valor;
+  const valorTrimestral = trimestral.valor;
   const economia = valorMensal * 3 - valorTrimestral;
   const cicloAtual = planoSelecionado.ciclo;
 
@@ -558,10 +535,7 @@ export default function FormAssinatura({
                 <p className="text-sm text-[var(--c21-tinta-suave)]">
                   {formatarPrecoCiclo(
                     f.planoSelecionado.ciclo,
-                    f.valorComAcrescimo ?? f.planoSelecionado.valor,
-                  )}
-                  {!f.ehBrasil && f.acrescimoInternacional > 0 && (
-                    <> (já com + {formatarValor(f.acrescimoInternacional)} de envio internacional)</>
+                    f.planoSelecionado.valor,
                   )}
                 </p>
               </div>
@@ -576,7 +550,6 @@ export default function FormAssinatura({
           <SeletorCiclo
             planos={f.planos}
             planoSelecionado={f.planoSelecionado}
-            ehBrasil={f.ehBrasil}
             onSelecionar={f.selecionarPlano}
           />
         )}
@@ -612,10 +585,7 @@ export default function FormAssinatura({
                       {p.nome}
                     </span>
                     <span className="whitespace-nowrap text-sm text-[var(--c21-tinta-suave)]">
-                      {formatarValor(
-                        p.valor +
-                          (f.ehBrasil ? 0 : calcularAcrescimoInternacional(p.meses)),
-                      )}
+                      {formatarValor(p.valor)}
                       /mês
                     </span>
                   </div>
@@ -640,7 +610,6 @@ export default function FormAssinatura({
       {f.upsellPendente && (
         <ModalUpsell
           info={f.upsellPendente}
-          ehBrasil={f.ehBrasil}
           onEscolherMensal={() => f.confirmarUpsell(false)}
           onEscolherTrimestral={() => f.confirmarUpsell(true)}
         />
@@ -781,13 +750,6 @@ export default function FormAssinatura({
           obrigatorio
           comOpcaoVazia={false}
         />
-        {!f.ehBrasil && f.planoSelecionado && (
-          <p className="rounded-[var(--c21-raio-sm)] bg-[var(--c21-papel-fundo)] px-3 py-2 text-xs font-medium text-[var(--c21-tinta)]">
-            Envio internacional: + {formatarValor(f.acrescimoInternacional)}
-            {f.planoSelecionado.meses > 1 &&
-              ` (${formatarValor(ACRESCIMO_INTERNACIONAL_POR_MES)} por envelope)`}
-          </p>
-        )}
         <Campo
           id="cep"
           label={f.ehBrasil ? "CEP" : "Código postal"}

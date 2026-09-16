@@ -5,7 +5,6 @@ import { AsYouType, type CountryCode } from "libphonenumber-js";
 
 import { formatarValor } from "@/lib/formatacao";
 import { PAIS_PADRAO } from "@/lib/paises";
-import { calcularAcrescimoInternacional } from "@/lib/precos";
 import { createClient } from "@/lib/supabase/client";
 import { validarTelefone } from "@/lib/telefone";
 import {
@@ -333,17 +332,6 @@ export function useFormAssinatura(
     () => planos?.find((p) => p.slug === planoSlug) ?? null,
     [planos, planoSlug],
   );
-
-  // Reage a troca de país automaticamente, já que `ehBrasil` vem de
-  // `campos.pais`. Mesma fórmula que o servidor usa pra cobrar de verdade:
-  // R$ 20 por envelope, ou seja, por mês do ciclo do plano.
-  const acrescimoInternacional =
-    ehBrasil || !planoSelecionado
-      ? 0
-      : calcularAcrescimoInternacional(planoSelecionado.meses);
-  const valorComAcrescimo = planoSelecionado
-    ? planoSelecionado.valor + acrescimoInternacional
-    : null;
 
   // Listagem mostra só os mensais, ordenados por `ordem` — Pêssego já é
   // ordem 1 no banco, então destacar o primeiro do array já resolve sem
@@ -713,8 +701,6 @@ export function useFormAssinatura(
     planosErro,
     planoSlug,
     planoSelecionado,
-    acrescimoInternacional,
-    valorComAcrescimo,
     mostrarEscolhaPlanos,
     selecionarPlano,
     escolherPlano,

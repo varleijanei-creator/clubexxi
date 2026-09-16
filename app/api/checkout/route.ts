@@ -8,7 +8,6 @@ import {
   criarCliente,
   listarCobrancasAssinatura,
 } from "@/lib/asaas";
-import { calcularAcrescimoInternacional } from "@/lib/precos";
 import { createServiceClient } from "@/lib/supabase/server";
 import { validarTelefone } from "@/lib/telefone";
 
@@ -567,11 +566,8 @@ export async function POST(request: Request) {
     );
   }
 
-  // Endereço fora do Brasil soma R$ 20 por envelope, ou seja, por mês do
-  // ciclo (mensal +20, trimestral +60) — é esse valor (não o do plano puro)
-  // que é gravado e cobrado.
-  const valor =
-    valorBase + (ehBrasil ? 0 : calcularAcrescimoInternacional(planoRow.meses));
+  // Mesmo preço no Brasil e fora — sem acréscimo por país.
+  const valor = valorBase;
 
   // mensal -> MONTHLY, trimestral -> QUARTERLY. Errar isso cobra R$ 180 e
   // recobra em 30 dias, então vem sempre do plano, nunca do cliente.

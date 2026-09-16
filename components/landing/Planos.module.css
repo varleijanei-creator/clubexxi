@@ -174,14 +174,3 @@
   border-radius: var(--c21-raio-pilula);
 }
 
-.planoAviso {
-  font-size: var(--c21-t-sm);
-  font-weight: 600;
-  color: var(--c21-tinta);
-}
-
-.planoAvisoSecundario {
-  font-size: 0.84375rem;
-  font-weight: 600;
-  color: var(--c21-tinta-suave);
-}
