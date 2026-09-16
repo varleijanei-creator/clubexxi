@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatarValor } from "@/lib/formatacao";
 import { PAIS_PADRAO } from "@/lib/paises";
 import { calcularAcrescimoInternacional } from "@/lib/precos";
+import { createClient } from "@/lib/supabase/client";
 import {
   apenasDigitos,
   formatarCEP,
@@ -14,6 +15,29 @@ import {
 } from "@/lib/validacao";
 
 export { formatarValor };
+
+export type AfiliadoMenu = { nome: string; codigo: string };
+
+// Select único: afiliada usa um valor composto "afiliado:<codigo>" pra
+// distinguir qual delas foi escolhida sem precisar de um segundo campo de
+// estado. selecionarOrigem() decodifica isso pra origem + afiliado_codigo.
+const PREFIXO_AFILIADO = "afiliado:";
+export function opcaoAfiliado(codigo: string): string {
+  return `${PREFIXO_AFILIADO}${codigo}`;
+}
+
+export const OPCOES_ORIGEM_INICIO: { value: string; label: string }[] = [
+  { value: "vitor-hugo", label: "Vitor Hugo" },
+  { value: "varlei-giannei", label: "Varlei Giannei" },
+];
+
+export const OPCOES_ORIGEM_FIM: { value: string; label: string }[] = [
+  { value: "assinante", label: "Uma amiga assinante me indicou" },
+  { value: "instagram", label: "Instagram @clubexxi" },
+  { value: "outro", label: "Outro" },
+];
+
+export type CodigoIndicacaoStatus = "ocioso" | "verificando" | "ok" | "erro";
 
 export type Plano = {
   slug: string;
@@ -56,6 +80,8 @@ export type CamposForm = {
   ponto_referencia: string;
   ref_code: string;
   afiliado_codigo: string;
+  origem: string;
+  origem_detalhe: string;
 };
 
 const CAMPOS_INICIAIS = (
@@ -77,6 +103,12 @@ const CAMPOS_INICIAIS = (
   ponto_referencia: "",
   ref_code: refInicial ?? "",
   afiliado_codigo: afInicial ?? "",
+  // Vinda por ?af=, a origem já é conhecida e o menu nem aparece (regra do
+  // afiliado tem prioridade sobre ref, igual já é hoje no servidor). Vinda
+  // por ?ref=, a origem só é decidida depois de validar o código (efeito
+  // abaixo) — por isso começa vazia mesmo com refInicial preenchido.
+  origem: afInicial ? "afiliado" : "",
+  origem_detalhe: "",
 });
 
 type CepStatus = "ocioso" | "carregando" | "ok" | "erro";
@@ -85,6 +117,7 @@ function validarCampos(
   campos: CamposForm,
   planoSlug: string | null,
   cepGenerico: boolean,
+  codigoIndicacaoInvalido: boolean,
 ): Record<string, string> {
   const erros: Record<string, string> = {};
 
@@ -93,6 +126,15 @@ function validarCampos(
   if (campos.nome.trim().length < 2) erros.nome = "Informe o nome completo";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(campos.email.trim()))
     erros.email = "E-mail inválido";
+
+  if (!campos.origem) erros.origem = "Selecione uma opção";
+  if (campos.origem === "assinante") {
+    if (!campos.ref_code.trim())
+      erros.ref_code = "Coloca o código de quem te indicou 🍑";
+    else if (codigoIndicacaoInvalido)
+      erros.ref_code = "Código de indicação inválido";
+  }
+
   if (!validarCPF(campos.cpf)) erros.cpf = "CPF inválido";
 
   const telefone = apenasDigitos(campos.telefone);
@@ -152,9 +194,20 @@ export function useFormAssinatura(
   const [campos, setCampos] = useState<CamposForm>(() =>
     CAMPOS_INICIAIS(refInicial, afInicial),
   );
-  const [mostrarCampoIndicacao, setMostrarCampoIndicacao] = useState(
-    Boolean(refInicial),
-  );
+
+  const [afiliadosMenu, setAfiliadosMenu] = useState<AfiliadoMenu[]>([]);
+
+  // "afiliado" (?af=) tem prioridade sobre "ref" — mesma regra do servidor
+  // (spec-link-afiliada.md). Só verifica o ref quando não veio afiliado.
+  const [refCheckStatus, setRefCheckStatus] = useState<
+    "pulado" | "verificando" | "valido" | "invalido"
+  >(afInicial ? "pulado" : refInicial ? "verificando" : "pulado");
+
+  const [codigoIndicacaoStatus, setCodigoIndicacaoStatus] =
+    useState<CodigoIndicacaoStatus>("ocioso");
+  const [codigoIndicacaoNome, setCodigoIndicacaoNome] = useState<
+    string | null
+  >(null);
 
   const [cepStatus, setCepStatus] = useState<CepStatus>("ocioso");
   const [cepMensagem, setCepMensagem] = useState<string | null>(null);
@@ -192,6 +245,81 @@ export function useFormAssinatura(
       cancelado = true;
     };
   }, []);
+
+  // Menu "Como você ficou sabendo": lista de afiliadas ativas, via RPC (anon
+  // key). Se falhar, o menu aparece do mesmo jeito, só sem elas.
+  useEffect(() => {
+    let cancelado = false;
+
+    async function carregar() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc("listar_afiliados_menu");
+        if (cancelado || error || !data) return;
+        const lista = data as AfiliadoMenu[];
+        setAfiliadosMenu(
+          [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+        );
+      } catch {
+        /* menu aparece sem afiliadas */
+      }
+    }
+
+    carregar();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // ?ref= na URL: valida contra o banco assim que a página carrega. Código
+  // válido trava a origem em "assinante" e esconde o menu; inválido, ignora
+  // o ref e mostra o menu normal — como se não tivesse link.
+  useEffect(() => {
+    if (afInicial || !refInicial) return;
+    let cancelado = false;
+
+    async function verificar() {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.rpc(
+          "validar_codigo_indicacao",
+          { p_codigo: refInicial },
+        );
+        if (cancelado) return;
+        const nome = !error && typeof data === "string" ? data : null;
+        if (nome) {
+          setCodigoIndicacaoStatus("ok");
+          setCodigoIndicacaoNome(nome);
+          setRefCheckStatus("valido");
+          setCampos((atual) => ({ ...atual, origem: "assinante" }));
+        } else {
+          setCampos((atual) => ({ ...atual, ref_code: "" }));
+          setRefCheckStatus("invalido");
+        }
+      } catch {
+        if (cancelado) return;
+        setCampos((atual) => ({ ...atual, ref_code: "" }));
+        setRefCheckStatus("invalido");
+      }
+    }
+
+    verificar();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Menu escondido: por ?af= (afiliado tem prioridade) ou por ?ref= já
+  // validado como assinante. Enquanto o ref inicial ainda está sendo
+  // verificado, também fica escondido — evita mostrar e esconder de novo.
+  const mostrarMenuOrigem =
+    !afInicial && refCheckStatus !== "valido" && refCheckStatus !== "verificando";
+
+  const origemSelecionada =
+    campos.origem === "afiliado"
+      ? opcaoAfiliado(campos.afiliado_codigo)
+      : campos.origem;
 
   const planoSelecionado = useMemo(
     () => planos?.find((p) => p.slug === planoSlug) ?? null,
@@ -284,8 +412,60 @@ export function useFormAssinatura(
     setEscolhaAbertaManual(!mostrarEscolhaPlanos);
   }
 
-  function alternarCampoIndicacao() {
-    setMostrarCampoIndicacao((atual) => !atual);
+  /** Troca a opção do menu "Como você ficou sabendo". `valor` já vem no
+   * formato do <select> — "afiliado:<codigo>" pras afiliadas, texto puro
+   * pras demais opções. Fora de "assinante" o código de indicação some e
+   * zera (regra: nas outras opções o campo fica escondido e vazio). */
+  function selecionarOrigem(valor: string) {
+    const ehAfiliado = valor.startsWith(PREFIXO_AFILIADO);
+    const origem = ehAfiliado ? "afiliado" : valor;
+    const codigoAfiliado = ehAfiliado
+      ? valor.slice(PREFIXO_AFILIADO.length)
+      : "";
+
+    setCampos((atual) => ({
+      ...atual,
+      origem,
+      afiliado_codigo: codigoAfiliado,
+      ref_code: origem === "assinante" ? atual.ref_code : "",
+    }));
+    limparErroChave("origem");
+
+    if (origem !== "assinante") {
+      setCodigoIndicacaoStatus("ocioso");
+      setCodigoIndicacaoNome(null);
+      limparErroChave("ref_code");
+    }
+  }
+
+  /** Chamada no blur do campo de código de indicação (RPC, anon key). */
+  async function validarCodigoIndicacao(codigo: string) {
+    const valor = codigo.trim();
+    if (!valor) {
+      setCodigoIndicacaoStatus("ocioso");
+      setCodigoIndicacaoNome(null);
+      return;
+    }
+
+    setCodigoIndicacaoStatus("verificando");
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("validar_codigo_indicacao", {
+        p_codigo: valor,
+      });
+      const nome = !error && typeof data === "string" ? data : null;
+      if (nome) {
+        setCodigoIndicacaoStatus("ok");
+        setCodigoIndicacaoNome(nome);
+        limparErroChave("ref_code");
+      } else {
+        setCodigoIndicacaoStatus("erro");
+        setCodigoIndicacaoNome(null);
+      }
+    } catch {
+      setCodigoIndicacaoStatus("erro");
+      setCodigoIndicacaoNome(null);
+    }
   }
 
   function limparErroCampo(campo: keyof CamposForm) {
@@ -396,6 +576,8 @@ export function useFormAssinatura(
       "plano",
       "nome",
       "email",
+      "origem",
+      "ref_code",
       "cpf",
       "telefone",
       "pais",
@@ -422,7 +604,12 @@ export function useFormAssinatura(
     // bater com nenhum plano ativo, planoSelecionado é null e cai no erro.
     const planoEfetivo = planoSelecionado?.slug ?? null;
 
-    const errosValidacao = validarCampos(campos, planoEfetivo, cepGenerico);
+    const errosValidacao = validarCampos(
+      campos,
+      planoEfetivo,
+      cepGenerico,
+      codigoIndicacaoStatus === "erro",
+    );
     if (Object.keys(errosValidacao).length > 0) {
       setErros(errosValidacao);
       const primeiro = primeiroCampoComErro(errosValidacao);
@@ -455,6 +642,11 @@ export function useFormAssinatura(
           ponto_referencia: campos.ponto_referencia.trim() || undefined,
           ref_code: campos.ref_code.trim() || undefined,
           afiliado_codigo: campos.afiliado_codigo.trim() || undefined,
+          origem: campos.origem || undefined,
+          origem_detalhe:
+            campos.origem === "outro"
+              ? campos.origem_detalhe.trim() || undefined
+              : undefined,
           forma_pagamento: formaPagamento,
         }),
       });
@@ -514,8 +706,13 @@ export function useFormAssinatura(
     atualizarUf,
     atualizarCEP,
 
-    mostrarCampoIndicacao,
-    alternarCampoIndicacao,
+    afiliadosMenu,
+    mostrarMenuOrigem,
+    origemSelecionada,
+    selecionarOrigem,
+    codigoIndicacaoStatus,
+    codigoIndicacaoNome,
+    validarCodigoIndicacao,
 
     cepStatus,
     cepMensagem,

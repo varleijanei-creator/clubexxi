@@ -24,6 +24,17 @@ const BILLING_TYPES = ["CREDIT_CARD"];
 const FORMAS_PAGAMENTO = ["CREDIT_CARD", "PIX"] as const;
 type FormaPagamento = (typeof FORMAS_PAGAMENTO)[number];
 
+// Bate com o check da coluna `pedidos.origem`. Valor fora dessa lista vira
+// null — nunca recusa o pedido por causa de "como você ficou sabendo".
+const ORIGENS_VALIDAS = new Set([
+  "vitor-hugo",
+  "varlei-giannei",
+  "afiliado",
+  "assinante",
+  "instagram",
+  "outro",
+]);
+
 // -------------------------------------------------------------------------
 // Validação da entrada
 // -------------------------------------------------------------------------
@@ -53,6 +64,8 @@ type EntradaValida = {
   endereco: Endereco;
   refCode: string | null;
   afiliadoCodigo: string | null;
+  origem: string | null;
+  origemDetalhe: string | null;
 };
 
 const texto = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -120,6 +133,15 @@ function validarEntrada(
   if (afiliadoCodigo && afiliadoCodigo.length > 40)
     erros.afiliado_codigo = "Código de afiliada inválido";
 
+  // Valor fora da lista aceita vira null em vez de recusar o pedido — "como
+  // você ficou sabendo" não é motivo pra travar uma venda.
+  const origemBruta = texto(b.origem);
+  const origem = ORIGENS_VALIDAS.has(origemBruta) ? origemBruta : null;
+  // Só faz sentido junto de "outro"; nas demais opções o campo nem aparece
+  // no formulário, então um valor vindo de fora daí é ignorado.
+  const origemDetalhe =
+    origem === "outro" ? texto(b.origem_detalhe) || null : null;
+
   if (Object.keys(erros).length > 0) return { erros };
 
   return {
@@ -139,6 +161,8 @@ function validarEntrada(
       },
       refCode,
       afiliadoCodigo,
+      origem,
+      origemDetalhe,
     },
   };
 }
@@ -422,7 +446,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { plano, pessoais, endereco, refCode, afiliadoCodigo } =
+  const { plano, pessoais, endereco, refCode, afiliadoCodigo, origem, origemDetalhe } =
     validado.dados;
   const ehBrasil = endereco.pais === "BR";
 
@@ -449,6 +473,44 @@ export async function POST(request: Request) {
     } else if (afiliado) {
       afiliadoId = afiliado.id;
       refCodeEfetivo = null;
+    }
+  }
+
+  // Revalida o ref_code contra o banco na hora de gravar — pode ter deixado
+  // de existir entre o carregamento da página e o envio. Código que não bate
+  // é descartado em silêncio, nunca recusa o pedido.
+  if (refCodeEfetivo) {
+    const { data: nomeIndicadora, error: refErr } = await supabase.rpc(
+      "validar_codigo_indicacao",
+      { p_codigo: refCodeEfetivo },
+    );
+    if (refErr) {
+      console.error("[checkout] erro ao validar ref_code", refErr);
+    } else if (!nomeIndicadora) {
+      refCodeEfetivo = null;
+    }
+  }
+
+  // Ninguém pode se autoindicar: se o e-mail de quem assina é o mesmo da
+  // dona do código (minúsculas, sem espaços), o pedido segue sem ref_code —
+  // sem bloquear a compra por causa disso.
+  if (refCodeEfetivo) {
+    const { data: indicadora, error: indicadoraErr } = await supabase
+      .from("membros")
+      .select("email")
+      .eq("codigo_indicacao", refCodeEfetivo)
+      .maybeSingle();
+
+    if (indicadoraErr) {
+      console.error("[checkout] erro ao conferir autoindicação", indicadoraErr);
+    } else {
+      const normalizar = (v: string) => v.toLowerCase().replace(/\s+/g, "");
+      if (
+        indicadora?.email &&
+        normalizar(indicadora.email) === normalizar(pessoais.email)
+      ) {
+        refCodeEfetivo = null;
+      }
     }
   }
 
@@ -513,6 +575,8 @@ export async function POST(request: Request) {
       tipo: planoRow.tipo ?? "assinatura",
       ref_code: refCodeEfetivo,
       afiliado_id: afiliadoId,
+      origem,
+      origem_detalhe: origemDetalhe,
       status: "iniciado",
       dados_json: dadosJson,
     })

@@ -12,6 +12,9 @@ import {
 import {
   formatarPrecoCiclo,
   formatarValor,
+  opcaoAfiliado,
+  OPCOES_ORIGEM_FIM,
+  OPCOES_ORIGEM_INICIO,
   useFormAssinatura,
   type FormaPagamento,
   type Plano,
@@ -622,23 +625,6 @@ export default function FormAssinatura({
         />
       )}
 
-      {/* Indicação */}
-      <section className="flex flex-col gap-2">
-        {f.mostrarCampoIndicacao ? (
-          <Campo
-            id="ref_code"
-            label="Código de indicação"
-            value={f.campos.ref_code}
-            onChange={(v) => f.atualizarCampo("ref_code", v)}
-            erro={f.erros.ref_code}
-          />
-        ) : (
-          <Botao variante="texto" onClick={f.alternarCampoIndicacao}>
-            Tenho um código de indicação
-          </Botao>
-        )}
-      </section>
-
       {/* Dados pessoais */}
       <section className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
         <h2
@@ -667,6 +653,56 @@ export default function FormAssinatura({
           autoComplete="email"
           inputMode="email"
         />
+        {f.mostrarMenuOrigem && (
+          <Select
+            id="origem"
+            label="Como você ficou sabendo do Clube 21?"
+            value={f.origemSelecionada}
+            onChange={f.selecionarOrigem}
+            opcoes={[
+              ...OPCOES_ORIGEM_INICIO,
+              ...f.afiliadosMenu.map((a) => ({
+                value: opcaoAfiliado(a.codigo),
+                label: a.nome,
+              })),
+              ...OPCOES_ORIGEM_FIM,
+            ]}
+            erro={f.erros.origem}
+            obrigatorio
+          />
+        )}
+        {f.campos.origem === "assinante" && (
+          <Campo
+            id="ref_code"
+            label="Código de indicação"
+            value={f.campos.ref_code}
+            onChange={(v) => f.atualizarCampo("ref_code", v)}
+            onBlur={() => f.validarCodigoIndicacao(f.campos.ref_code)}
+            erro={
+              f.erros.ref_code ??
+              (f.codigoIndicacaoStatus === "erro"
+                ? "Não encontramos esse código. Confere com quem te indicou?"
+                : undefined)
+            }
+            obrigatorio
+            ajuda={
+              f.codigoIndicacaoStatus === "ok" && f.codigoIndicacaoNome
+                ? `Indicação da ${f.codigoIndicacaoNome} ✓`
+                : f.codigoIndicacaoStatus === "verificando"
+                  ? "Verificando código…"
+                  : "Uma amiga te indicou? Coloca o código dela aqui e ela ganha desconto no mês seguinte 🍑"
+            }
+          />
+        )}
+        {f.campos.origem === "outro" && (
+          <Campo
+            id="origem_detalhe"
+            label="Conta pra gente onde 🙂"
+            value={f.campos.origem_detalhe}
+            onChange={(v) => f.atualizarCampo("origem_detalhe", v)}
+            erro={f.erros.origem_detalhe}
+          />
+        )}
         <Campo
           id="cpf"
           label="CPF"
