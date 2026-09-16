@@ -80,8 +80,6 @@
   text-wrap: pretty;
 }
 
-.cta {
-  margin-top: clamp(var(--c21-e-6), 5vw, var(--c21-e-8));
-  display: flex;
-  justify-content: center;
+.avisoCta {
+  margin-top: var(--c21-e-3);
 }

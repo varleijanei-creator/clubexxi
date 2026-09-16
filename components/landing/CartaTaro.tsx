@@ -15,7 +15,13 @@ export default function CartaTaro() {
           </p>
           <p className={s.selo}>Exclusiva do plano Pêssego</p>
         </div>
-        <div className={s.imagem}>{/* TODO: imagem */}</div>
+        <div className={s.imagem}>
+          <img
+            src="/clube21/env-carta-taro.webp"
+            alt="Carta de tarô O Mundo, arcano XXI"
+            className={s.foto}
+          />
+        </div>
       </div>
     </section>
   );

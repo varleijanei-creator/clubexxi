@@ -9,16 +9,32 @@ export default function OQueVem() {
         <h2 className={s.titulo}>O que chega no seu envelope?</h2>
 
         <div className={s.pecas}>
-          <div className={`${s.cartao} ${s.cartaoAmarelo} ${s.torto1}`}>
-            <h3 className={s.cartaoTitulo}>Tiragem e Foco do Mês</h3>
-            <p className={s.cartaoTexto}>
-              Uma tiragem de tarô que traduz a energia do mês de um jeito
-              delicioso. Um foco pra te guiar ao longo dos próximos 30 dias.
-            </p>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-tiragem.webp"
+                alt="Tiragem e Foco do Mês"
+                className={`${s.foto} ${s.fotoTortoA}`}
+              />
+            </div>
+            <div className={`${s.cartaoFotoTexto} ${s.cartaoAmarelo}`}>
+              <h3 className={s.cartaoTitulo}>Tiragem e Foco do Mês</h3>
+              <p className={s.cartaoTexto}>
+                Uma tiragem de tarô que traduz a energia do mês de um jeito
+                delicioso. Um foco pra te guiar ao longo dos próximos 30
+                dias.
+              </p>
+            </div>
           </div>
 
-          <div className={`${s.cartaoFoto} ${s.torto2}`}>
-            <div className={s.fotoPlaceholder}>{/* TODO: imagem */}</div>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-diario-vitor.webp"
+                alt="Diário Vitor"
+                className={`${s.foto} ${s.fotoTortoB}`}
+              />
+            </div>
             <div className={`${s.cartaoFotoTexto} ${s.fundoLimao}`}>
               <h3 className={s.cartaoTitulo}>Diário Vitor</h3>
               <p className={s.cartaoTexto}>
@@ -28,8 +44,14 @@ export default function OQueVem() {
             </div>
           </div>
 
-          <div className={`${s.cartaoFoto} ${s.torto3}`}>
-            <div className={s.fotoPlaceholder}>{/* TODO: imagem */}</div>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-diario-varlei.webp"
+                alt="Diário Varlei"
+                className={`${s.foto} ${s.fotoTortoA}`}
+              />
+            </div>
             <div className={`${s.cartaoFotoTexto} ${s.fundoLilas}`}>
               <h3 className={s.cartaoTitulo}>Diário Varlei</h3>
               <p className={s.cartaoTexto}>
@@ -39,8 +61,14 @@ export default function OQueVem() {
             </div>
           </div>
 
-          <div className={`${s.cartaoFoto} ${s.torto2}`}>
-            <div className={s.fotoPlaceholder}>{/* TODO: imagem */}</div>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-caso-do-acaso.webp"
+                alt="Caso do Acaso — Horóscopo do Mês"
+                className={`${s.foto} ${s.fotoTortoB}`}
+              />
+            </div>
             <div className={`${s.cartaoFotoTexto} ${s.fundoPapel}`}>
               <h3 className={`${s.cartaoTitulo} ${s.tituloCobalto}`}>
                 Caso do Acaso — Horóscopo do Mês
@@ -53,43 +81,61 @@ export default function OQueVem() {
             </div>
           </div>
 
-          <div className={`${s.cartaoFoto} ${s.torto4}`}>
-            <img
-              src="/clube21/peca-1-comer.webp"
-              alt="Momento Comer, Rezar e Amar"
-              className={s.foto}
-            />
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-comer-rezar-amar.webp"
+                alt="Momento Comer, Rezar e Amar"
+                className={`${s.foto} ${s.fotoTortoA}`}
+              />
+            </div>
             <div className={`${s.cartaoFotoTexto} ${s.fundoRosa}`}>
               <h3 className={s.cartaoTitulo}>Momento Comer, Rezar e Amar</h3>
               <p className={s.cartaoTexto}>Um relato real de prazer e presença.</p>
             </div>
           </div>
 
-          <div className={`${s.cartao} ${s.cartaoCeu} ${s.torto5}`}>
-            <h3 className={s.cartaoTitulo}>Baixo Astral do Mês</h3>
-            <p className={s.cartaoTexto}>
-              Quando um de nós passa por um perrengue e conta sem filtro.
-            </p>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-baixo-astral.webp"
+                alt="Baixo Astral do Mês"
+                className={`${s.foto} ${s.fotoTortoB}`}
+              />
+            </div>
+            <div className={`${s.cartaoFotoTexto} ${s.cartaoCeu}`}>
+              <h3 className={s.cartaoTitulo}>Baixo Astral do Mês</h3>
+              <p className={s.cartaoTexto}>
+                Quando um de nós passa por um perrengue e conta sem filtro.
+              </p>
+            </div>
           </div>
 
-          <div className={`${s.cartao} ${s.cartaoLaranja} ${s.torto6}`}>
-            <h3 className={`${s.cartaoTitulo} ${s.tituloClaro}`}>
-              Saia Justa do Mês
-            </h3>
-            <p className={`${s.cartaoTexto} ${s.textoClaro}`}>
-              A treta engraçada e cringe do mês, pra dar boas risadas.
-            </p>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-saia-justa.webp"
+                alt="Saia Justa do Mês"
+                className={`${s.foto} ${s.fotoTortoA}`}
+              />
+            </div>
+            <div className={`${s.cartaoFotoTexto} ${s.cartaoLaranja}`}>
+              <h3 className={s.cartaoTitulo}>Saia Justa do Mês</h3>
+              <p className={s.cartaoTexto}>
+                A treta engraçada e cringe do mês, pra dar boas risadas.
+              </p>
+            </div>
           </div>
 
           <div className={s.maoNaMassa}>
             <div className={s.maoNaMassaFotos}>
               <img
-                src="/clube21/peca-5-receita.webp"
+                src="/clube21/env-receita.webp"
                 alt="Receita do mês"
                 className={s.maoNaMassaReceita}
               />
               <img
-                src="/clube21/peca-4-drink.webp"
+                src="/clube21/env-drink.webp"
                 alt="Drink do mês"
                 className={s.maoNaMassaDrink}
               />
@@ -104,12 +150,21 @@ export default function OQueVem() {
             </div>
           </div>
 
-          <div className={`${s.cartao} ${s.cartaoVerde} ${s.torto7}`}>
-            <h3 className={s.cartaoTitulo}>Histórias das Membras</h3>
-            <p className={s.cartaoTexto}>
-              Um relato real de vida enviado por uma assinante e escolhido
-              pra edição.
-            </p>
+          <div className={s.cartaoFoto}>
+            <div className={s.fotoMoldura}>
+              <img
+                src="/clube21/env-historias.webp"
+                alt="Histórias das Membras"
+                className={`${s.foto} ${s.fotoTortoB}`}
+              />
+            </div>
+            <div className={`${s.cartaoFotoTexto} ${s.cartaoVerde}`}>
+              <h3 className={s.cartaoTitulo}>Histórias das Membras</h3>
+              <p className={s.cartaoTexto}>
+                Um relato real de vida enviado por uma assinante e escolhido
+                pra edição.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -131,14 +186,19 @@ export default function OQueVem() {
               <p>Presentes e sorteios com marcas parceiras, todo mês!</p>
             </div>
           </div>
-          <div className={s.destaqueImagens}>{/* TODO: imagem */}</div>
+          <div className={s.destaqueImagens}>
+            <img
+              src="/clube21/env-missoes.webp"
+              alt="Missões do mês"
+              className={s.fotoMissoes}
+            />
+          </div>
+          <div className={s.destaqueCta}>
+            <Botao href="/assinar">Quero receber o meu</Botao>
+          </div>
         </div>
 
         <p className={s.fechamento}>E o melhor: enviamos pro mundo todo!</p>
-
-        <div className={s.cta}>
-          <Botao href="/assinar">Quero receber o meu</Botao>
-        </div>
       </div>
     </section>
   );

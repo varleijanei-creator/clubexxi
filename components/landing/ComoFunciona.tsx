@@ -36,9 +36,9 @@ export default function ComoFunciona() {
             Depois do dia 20, sem estresse — você já garante seu lugar, só
             que a primeira carta que chega é a do mês seguinte :D
           </p>
-        </div>
-        <div className={s.cta}>
-          <Botao href="/assinar">Começar agora</Botao>
+          <div className={s.avisoCta}>
+            <Botao href="/assinar">Começar agora</Botao>
+          </div>
         </div>
       </div>
     </section>

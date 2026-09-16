@@ -30,12 +30,6 @@
   margin-bottom: clamp(var(--c21-e-3), 3vw, var(--c21-e-6));
 }
 
-.cartao {
-  border-radius: var(--c21-raio-md);
-  padding: var(--c21-e-4) var(--c21-e-3) var(--c21-e-4);
-  box-shadow: 0 6px 16px rgba(22, 19, 15, 0.1);
-}
-
 .cartaoAmarelo { background: var(--c21-amarelo); }
 .cartaoCeu { background: var(--c21-ceu); }
 .cartaoLaranja { background: var(--c21-laranja); }
@@ -45,25 +39,27 @@
   border-radius: var(--c21-raio-md);
   overflow: hidden;
   background: var(--c21-papel);
-  box-shadow: var(--c21-sombra-peca);
+  box-shadow: 0 6px 16px rgba(22, 19, 15, 0.1);
+}
+
+/* Moldura com respiro: a foto gira um pouco dentro dela, como uma peça de
+   papel solta — o texto abaixo nunca gira junto. */
+.fotoMoldura {
+  padding: var(--c21-e-2) var(--c21-e-2) 0;
 }
 
 .foto {
   width: 100%;
   height: auto;
+  aspect-ratio: 1 / 1.42;
+  object-fit: cover;
   display: block;
+  border-radius: var(--c21-raio-sm);
+  box-shadow: var(--c21-sombra-peca);
 }
 
-.fotoPlaceholder {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--c21-linha);
-  color: var(--c21-tinta-suave);
-  font-size: var(--c21-t-xs);
-}
+.fotoTortoA { transform: rotate(-2.5deg); }
+.fotoTortoB { transform: rotate(2.2deg); }
 
 .cartaoFotoTexto {
   padding: var(--c21-e-3) var(--c21-e-3) var(--c21-e-4);
@@ -85,7 +81,6 @@
 
 .tituloCobalto { color: var(--c21-cobalto); }
 .tituloVermelho { color: var(--c21-vermelho); }
-.tituloClaro { color: var(--c21-papel); }
 
 .cartaoTexto {
   margin: 0;
@@ -94,16 +89,6 @@
   color: var(--c21-tinta);
   text-wrap: pretty;
 }
-
-.textoClaro { color: var(--c21-papel); }
-
-.torto1 { transform: rotate(-1.6deg); }
-.torto2 { transform: rotate(1.2deg); }
-.torto3 { transform: rotate(-1.9deg); }
-.torto4 { transform: rotate(1.7deg); }
-.torto5 { transform: rotate(2.1deg); }
-.torto6 { transform: rotate(-2.4deg); }
-.torto7 { transform: rotate(1.2deg); }
 
 .maoNaMassa {
   break-inside: avoid;
@@ -117,6 +102,8 @@
 .maoNaMassaReceita {
   width: 70%;
   height: auto;
+  aspect-ratio: 1 / 1.42;
+  object-fit: cover;
   display: block;
   border-radius: var(--c21-raio-md);
   transform: rotate(-2.5deg);
@@ -129,6 +116,8 @@
   bottom: 0;
   width: 54%;
   height: auto;
+  aspect-ratio: 1 / 1.42;
+  object-fit: cover;
   display: block;
   border-radius: var(--c21-raio-md);
   transform: rotate(1.6deg);
@@ -144,9 +133,7 @@
 
 .destaque {
   margin-top: clamp(var(--c21-e-4), 4vw, var(--c21-e-6));
-  /* var(--c21-papel) em cima de --c21-laranja puro dá só ~3:1 de contraste —
-     escurece o laranja com um pouco de tinta pra passar de 4.5:1 (WCAG AA). */
-  background: color-mix(in srgb, var(--c21-laranja) 70%, var(--c21-tinta) 30%);
+  background: var(--c21-laranja);
   border-radius: var(--c21-raio-md);
   padding: clamp(var(--c21-e-4), 4vw, var(--c21-e-6));
   display: flex;
@@ -181,7 +168,11 @@
   margin: 0;
   font-size: var(--c21-t-base);
   line-height: var(--c21-altura-normal);
-  color: var(--c21-papel);
+  /* --c21-papel sobre --c21-laranja puro só dá 3:1 — abaixo do corpo de
+     texto (WCAG AA pede 4.5:1 pra texto normal, que só cai pra 3:1 acima de
+     24px ou 18.66px em negrito, o que não é o caso aqui). --c21-tinta dá
+     5.48:1 sem precisar escurecer o fundo nem crescer a fonte. */
+  color: var(--c21-tinta);
   text-wrap: pretty;
 }
 
@@ -191,8 +182,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--c21-papel);
-  font-size: var(--c21-t-xs);
+}
+
+.fotoMissoes {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  aspect-ratio: 1 / 1.42;
+  object-fit: cover;
+  display: block;
+  border-radius: var(--c21-raio-sm);
+  box-shadow: 0 12px 26px rgba(22, 19, 15, 0.3);
+  transform: rotate(-2.5deg);
+}
+
+.destaqueCta {
+  flex: 1 1 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .fechamento {
@@ -201,10 +208,4 @@
   font-size: clamp(var(--c21-t-lg), 3.6vw, var(--c21-t-xl));
   line-height: 1.2;
   color: var(--c21-vermelho);
-}
-
-.cta {
-  margin-top: var(--c21-e-6);
-  display: flex;
-  justify-content: center;
 }
