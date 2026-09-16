@@ -112,7 +112,7 @@ export type DadosClienteAsaas = {
   name: string;
   email: string;
   cpfCnpj: string;
-  phone?: string;
+  phone: string;
   address: string;
   addressNumber: string;
   complement?: string;

@@ -35,6 +35,13 @@ const ORIGENS_VALIDAS = new Set([
   "outro",
 ]);
 
+// Mensagem genérica pra qualquer falha ao criar cliente/checkout/assinatura
+// no Asaas (ou erro interno na hora, como ASAAS_TELEFONE_PLACEHOLDER
+// ausente). A mensagem original do Asaas (ou o erro) vai só pro log —
+// nunca aparece crua pra quem está assinando.
+const MENSAGEM_ERRO_CHECKOUT =
+  "Não conseguimos concluir sua assinatura agora. Tente de novo em alguns minutos ou fale com a gente em comercial.clube21@gmail.com.";
+
 // -------------------------------------------------------------------------
 // Validação da entrada
 // -------------------------------------------------------------------------
@@ -205,14 +212,28 @@ function cepAsaas(cep: string): string {
 }
 
 /**
- * `phone` do Asaas só vale pra telefone do Brasil, no formato antigo (dígitos,
- * sem `+55`, sem máscara — ex. "4738010919"). `pessoais.telefone` já chega em
+ * `phone` é obrigatório no checkout hospedado (POST /v3/checkouts recusa com
+ * "O campo phoneNumber deve ser informado." quando ausente — testado no
+ * sandbox). Pra telefone do Brasil, manda o formato antigo (dígitos, sem
+ * `+55`, sem máscara — ex. "4738010919"): `pessoais.telefone` já chega em
  * E.164 (ver lib/telefone.ts), então basta tirar o prefixo do país. Telefone
- * de outro país não tem como virar esse formato nacional — não envia o campo.
+ * de outro país não tem como virar esse formato nacional — manda o
+ * ASAAS_TELEFONE_PLACEHOLDER (número brasileiro fixo) só nessa chamada; o
+ * telefone real da pessoa continua gravado em E.164 no Supabase, sem
+ * alteração. Falha alto e claro se a variável não estiver configurada, em
+ * vez de mandar o campo vazio pro Asaas.
  */
-function telefoneAsaas(pessoais: Pessoais): string | undefined {
-  if (pessoais.paisTelefone !== "BR") return undefined;
-  return pessoais.telefone.replace(/^\+55/, "");
+function telefoneAsaas(pessoais: Pessoais): string {
+  if (pessoais.paisTelefone === "BR") {
+    return pessoais.telefone.replace(/^\+55/, "");
+  }
+  const placeholder = process.env.ASAAS_TELEFONE_PLACEHOLDER;
+  if (!placeholder) {
+    throw new Error(
+      "ASAAS_TELEFONE_PLACEHOLDER não configurado — necessário pra telefone fora do Brasil no cadastro do Asaas.",
+    );
+  }
+  return placeholder;
 }
 
 /**
@@ -273,8 +294,8 @@ function extrairUrlFatura(cobranca: Record<string, unknown>): string | null {
  * Erro em qualquer etapa do ramo Pix (2.2 a 2.4 da spec). Por spec, o pedido
  * fica órfão com status "iniciado" (pendente) — diferente do caminho de
  * cartão, aqui NÃO marcamos "cancelado", porque não ativou ninguém e pode
- * ser retomado depois. Sempre devolve 500, com a mensagem do Asaas quando
- * disponível.
+ * ser retomado depois. Sempre devolve 500. Mensagem original (do Asaas ou
+ * erro interno) só no log — a tela recebe sempre a mensagem amigável.
  */
 function falharPix(pedidoId: string, etapa: string, err: unknown) {
   if (err instanceof AsaasError) {
@@ -290,11 +311,10 @@ function falharPix(pedidoId: string, etapa: string, err: unknown) {
     });
   }
 
-  const mensagem =
-    err instanceof AsaasError
-      ? err.message
-      : "Falha ao processar o pagamento via Pix. Tente de novo em instantes.";
-  return NextResponse.json({ error: mensagem, pedidoId }, { status: 500 });
+  return NextResponse.json(
+    { error: MENSAGEM_ERRO_CHECKOUT, pedidoId },
+    { status: 500 },
+  );
 }
 
 /**
@@ -632,66 +652,70 @@ export async function POST(request: Request) {
 
   // 2) Cria o checkout no Asaas. externalReference amarra o retorno ao pedido.
   const base = siteUrl(request);
-  const payload = {
-    billingTypes: BILLING_TYPES,
-    chargeTypes: ["RECURRENT"],
-    minutesToExpire: 1440,
-    externalReference: pedido.id,
-    callback: {
-      successUrl: `${base}/checkout/sucesso?pedido=${pedido.id}`,
-      cancelUrl: `${base}/checkout/cancelado?pedido=${pedido.id}`,
-      expiredUrl: `${base}/checkout/expirado?pedido=${pedido.id}`,
-    },
-    items: [
-      {
-        name: planoRow.nome,
-        description: `Assinatura ${planoRow.nome} — cobrança ${
-          planoRow.ciclo === "trimestral" ? "trimestral" : "mensal"
-        }`,
-        quantity: 1,
-        value: valor,
-      },
-    ],
-    // customerData do POST /v3/checkouts (schema CheckoutSessionCustomerDataDTO).
-    // Campos: name, cpfCnpj, email, phone, address, addressNumber, complement,
-    // province, postalCode. Não existe mobilePhone nem country aqui.
-    // - phone: opcional. Só dígitos, sem máscara (ex. do schema: "4738010919"),
-    //   e só faz sentido pra telefone do Brasil — ver telefoneAsaas().
-    // - postalCode: 8 dígitos, sem máscara, obrigatório e validado contra a
-    //   base dos Correios — mas testado direto no sandbox: só rejeita CEP que
-    //   não existe de verdade ("O campo postalCode é inválido"). CEP genérico
-    //   de município (final -000, CEP único de cidade pequena) é aceito
-    //   normalmente, é mandado como está. Pra fora do Brasil não tem CEP real
-    //   pra mandar — usa o placeholder fixo CEP_ASAAS_INTERNACIONAL. O
-    //   endereço de entrega de verdade está em pedidos.dados_json/enderecos,
-    //   não aqui.
-    // - province: obrigatório aqui (testado no sandbox: "O campo province deve
-    //   ser informado." quando omitido) — diferente de POST /v3/customers, que
-    //   aceita sem. Quando o bairro vier vazio (CEP único sem bairro no ViaCEP,
-    //   ou endereço internacional sem bairro preenchido), manda "Centro" só
-    //   nessa chamada — nunca grava "Centro" em pedidos.dados_json nem em
-    //   enderecos, que continuam com o bairro real (ou null).
-    customerData: {
-      name: pessoais.nome,
-      email: pessoais.email,
-      cpfCnpj: pessoais.cpf,
-      phone: telefoneAsaas(pessoais),
-      address: endereco.logradouro,
-      addressNumber: endereco.numero,
-      complement: endereco.complemento ?? undefined,
-      province: endereco.bairro || "Centro",
-      postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
-    },
-    subscription: {
-      cycle: cicloAsaas,
-      nextDueDate: proximoVencimento(),
-    },
-  };
 
   let checkout;
   try {
+    const payload = {
+      billingTypes: BILLING_TYPES,
+      chargeTypes: ["RECURRENT"],
+      minutesToExpire: 1440,
+      externalReference: pedido.id,
+      callback: {
+        successUrl: `${base}/checkout/sucesso?pedido=${pedido.id}`,
+        cancelUrl: `${base}/checkout/cancelado?pedido=${pedido.id}`,
+        expiredUrl: `${base}/checkout/expirado?pedido=${pedido.id}`,
+      },
+      items: [
+        {
+          name: planoRow.nome,
+          description: `Assinatura ${planoRow.nome} — cobrança ${
+            planoRow.ciclo === "trimestral" ? "trimestral" : "mensal"
+          }`,
+          quantity: 1,
+          value: valor,
+        },
+      ],
+      // customerData do POST /v3/checkouts (schema CheckoutSessionCustomerDataDTO).
+      // Campos: name, cpfCnpj, email, phone, address, addressNumber, complement,
+      // province, postalCode. Não existe mobilePhone nem country aqui.
+      // - phone: obrigatório. Só dígitos, sem máscara (ex. do schema:
+      //   "4738010919") — real pra telefone do Brasil, ASAAS_TELEFONE_PLACEHOLDER
+      //   pros demais — ver telefoneAsaas().
+      // - postalCode: 8 dígitos, sem máscara, obrigatório e validado contra a
+      //   base dos Correios — mas testado direto no sandbox: só rejeita CEP que
+      //   não existe de verdade ("O campo postalCode é inválido"). CEP genérico
+      //   de município (final -000, CEP único de cidade pequena) é aceito
+      //   normalmente, é mandado como está. Pra fora do Brasil não tem CEP real
+      //   pra mandar — usa o placeholder fixo CEP_ASAAS_INTERNACIONAL. O
+      //   endereço de entrega de verdade está em pedidos.dados_json/enderecos,
+      //   não aqui.
+      // - province: obrigatório aqui (testado no sandbox: "O campo province deve
+      //   ser informado." quando omitido) — diferente de POST /v3/customers, que
+      //   aceita sem. Quando o bairro vier vazio (CEP único sem bairro no ViaCEP,
+      //   ou endereço internacional sem bairro preenchido), manda "Centro" só
+      //   nessa chamada — nunca grava "Centro" em pedidos.dados_json nem em
+      //   enderecos, que continuam com o bairro real (ou null).
+      customerData: {
+        name: pessoais.nome,
+        email: pessoais.email,
+        cpfCnpj: pessoais.cpf,
+        phone: telefoneAsaas(pessoais),
+        address: endereco.logradouro,
+        addressNumber: endereco.numero,
+        complement: endereco.complemento ?? undefined,
+        province: endereco.bairro || "Centro",
+        postalCode: ehBrasil ? cepAsaas(endereco.cep) : CEP_ASAAS_INTERNACIONAL,
+      },
+      subscription: {
+        cycle: cicloAsaas,
+        nextDueDate: proximoVencimento(),
+      },
+    };
+
     checkout = await criarCheckout(payload);
   } catch (err) {
+    // Mensagem original só no log — nunca repassada crua pra tela (nem do
+    // Asaas, nem de erro interno como ASAAS_TELEFONE_PLACEHOLDER ausente).
     if (err instanceof AsaasError) {
       console.error("[checkout] Asaas recusou o checkout", {
         pedidoId: pedido.id,
@@ -699,7 +723,10 @@ export async function POST(request: Request) {
         detalhes: err.detalhes,
       });
     } else {
-      console.error("[checkout] erro inesperado ao criar checkout", err);
+      console.error("[checkout] erro inesperado ao criar checkout", {
+        pedidoId: pedido.id,
+        err,
+      });
     }
     // O check `pedidos_status_check` só aceita iniciado/pago/cancelado/expirado.
     // Sem estado "erro", marcamos a tentativa como cancelada.
@@ -715,12 +742,8 @@ export async function POST(request: Request) {
     }
 
     const status = err instanceof AsaasError ? err.status : 502;
-    const mensagem =
-      err instanceof AsaasError
-        ? err.message
-        : "Falha ao criar o checkout. Tente de novo em instantes.";
     return NextResponse.json(
-      { error: mensagem, pedidoId: pedido.id },
+      { error: MENSAGEM_ERRO_CHECKOUT, pedidoId: pedido.id },
       { status },
     );
   }

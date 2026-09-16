@@ -728,7 +728,6 @@ export default function FormAssinatura({
                 })()
           }
           inputMode="tel"
-          ajuda="Use um número real — números implausíveis são recusados na hora do pagamento"
         />
       </section>
 
