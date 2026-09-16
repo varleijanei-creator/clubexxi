@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 
 import { PAISES } from "@/lib/paises";
 import {
@@ -33,6 +34,26 @@ const EMOJI_POR_SLUG: Record<string, string> = {
   flor: "🌸",
   semente: "🌱",
 };
+
+// DDI do país (ex.: "55" pro Brasil). Alguns códigos de lib/paises.ts são
+// territórios sem discagem própria (ex. Antártida) e não têm DDI no
+// libphonenumber-js — devolve null nesse caso.
+function ddiDoPais(codigo: string): string | null {
+  try {
+    return getCountryCallingCode(codigo as CountryCode);
+  } catch {
+    return null;
+  }
+}
+
+// Opções do seletor de país do telefone: mesma lista de lib/paises.ts, com o
+// DDI no rótulo quando existe.
+const OPCOES_PAIS_TELEFONE: { value: string; label: string }[] = PAISES.map(
+  (p) => {
+    const ddi = ddiDoPais(p.codigo);
+    return { value: p.codigo, label: ddi ? `${p.nome} (+${ddi})` : p.nome };
+  },
+);
 
 const DESCRICAO_FALLBACK_POR_SLUG: Record<string, string> = {
   pessego:
@@ -520,12 +541,12 @@ export default function FormAssinatura({
 
         {f.planos && f.planoSelecionado && !f.mostrarEscolhaPlanos && (
           <div className="flex items-center gap-3 rounded-[var(--c21-raio-sm)] border border-[var(--c21-linha)] bg-[var(--c21-papel-fundo)] px-3 py-3">
-            <img
-              src="/clube21/pessego.svg"
-              alt=""
+            <span
               aria-hidden="true"
-              className="h-10 w-10 shrink-0"
-            />
+              className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl leading-none"
+            >
+              {EMOJI_POR_SLUG[f.planoSelecionado.slug]}
+            </span>
             <div className="flex flex-1 items-center justify-between gap-3">
               <div>
                 <p
@@ -713,6 +734,15 @@ export default function FormAssinatura({
           placeholder="000.000.000-00"
           inputMode="numeric"
         />
+        <Select
+          id="pais_telefone"
+          label="País do telefone"
+          value={f.campos.paisTelefone}
+          onChange={f.atualizarPaisTelefone}
+          opcoes={OPCOES_PAIS_TELEFONE}
+          obrigatorio
+          comOpcaoVazia={false}
+        />
         <Campo
           id="telefone"
           label="Telefone"
@@ -720,7 +750,14 @@ export default function FormAssinatura({
           onChange={f.atualizarTelefone}
           erro={f.erros.telefone}
           obrigatorio
-          placeholder="(11) 98765-4321"
+          placeholder={
+            f.campos.paisTelefone === "BR"
+              ? "(11) 98765-4321"
+              : (() => {
+                  const ddi = ddiDoPais(f.campos.paisTelefone);
+                  return ddi ? `+${ddi} número de telefone` : "Número de telefone";
+                })()
+          }
           inputMode="tel"
           ajuda="Use um número real — números implausíveis são recusados na hora do pagamento"
         />

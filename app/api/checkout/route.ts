@@ -10,6 +10,7 @@ import {
 } from "@/lib/asaas";
 import { calcularAcrescimoInternacional } from "@/lib/precos";
 import { createServiceClient } from "@/lib/supabase/server";
+import { validarTelefone } from "@/lib/telefone";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ type Pessoais = {
   email: string;
   cpf: string;
   telefone: string;
+  paisTelefone: string;
 };
 
 type Endereco = {
@@ -84,13 +86,19 @@ function validarEntrada(
   const nome = texto(b.nome);
   const email = texto(b.email).toLowerCase();
   const cpf = digitos(b.cpf);
-  const telefone = digitos(b.telefone);
 
   if (nome.length < 2) erros.nome = "Informe o nome completo";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) erros.email = "E-mail inválido";
   if (cpf.length !== 11) erros.cpf = "CPF deve ter 11 dígitos";
-  if (telefone.length < 10 || telefone.length > 11)
-    erros.telefone = "Telefone inválido (DDD + número)";
+
+  // País do telefone é independente do país do endereço (spec-formulário: a
+  // pessoa pode morar num país e ter telefone de outro).
+  const paisTelefone = (texto(b.pais_telefone) || "BR").toUpperCase();
+  if (!/^[A-Z]{2}$/.test(paisTelefone)) erros.pais_telefone = "País do telefone inválido";
+
+  const resultadoTelefone = validarTelefone(texto(b.telefone), paisTelefone);
+  if (!resultadoTelefone.valido) erros.telefone = "Telefone inválido";
+  const telefone = resultadoTelefone.valido ? resultadoTelefone.e164 : "";
 
   // País: BR mantém as regras brasileiras (CEP de 8 dígitos, UF de 2 letras);
   // qualquer outro país vira texto livre pro CEP/UF, já que não tem como
@@ -147,7 +155,7 @@ function validarEntrada(
   return {
     dados: {
       plano,
-      pessoais: { nome, email, cpf, telefone },
+      pessoais: { nome, email, cpf, telefone, paisTelefone },
       endereco: {
         cep,
         logradouro,
@@ -193,6 +201,17 @@ function siteUrl(request: Request): string {
  */
 function cepAsaas(cep: string): string {
   return cep.replace(/\D/g, "");
+}
+
+/**
+ * `phone` do Asaas só vale pra telefone do Brasil, no formato antigo (dígitos,
+ * sem `+55`, sem máscara — ex. "4738010919"). `pessoais.telefone` já chega em
+ * E.164 (ver lib/telefone.ts), então basta tirar o prefixo do país. Telefone
+ * de outro país não tem como virar esse formato nacional — não envia o campo.
+ */
+function telefoneAsaas(pessoais: Pessoais): string | undefined {
+  if (pessoais.paisTelefone !== "BR") return undefined;
+  return pessoais.telefone.replace(/^\+55/, "");
 }
 
 /**
@@ -302,7 +321,7 @@ async function criarPedidoPix(params: {
         name: pessoais.nome,
         email: pessoais.email,
         cpfCnpj: pessoais.cpf,
-        phone: pessoais.telefone,
+        phone: telefoneAsaas(pessoais),
         address: endereco.logradouro,
         addressNumber: endereco.numero,
         complement: endereco.complemento ?? undefined,
@@ -631,7 +650,8 @@ export async function POST(request: Request) {
     // customerData do POST /v3/checkouts (schema CheckoutSessionCustomerDataDTO).
     // Campos: name, cpfCnpj, email, phone, address, addressNumber, complement,
     // province, postalCode. Não existe mobilePhone nem country aqui.
-    // - phone: só dígitos, sem máscara (ex. do schema: "4738010919").
+    // - phone: opcional. Só dígitos, sem máscara (ex. do schema: "4738010919"),
+    //   e só faz sentido pra telefone do Brasil — ver telefoneAsaas().
     // - postalCode: 8 dígitos, sem máscara, obrigatório e validado contra a
     //   base dos Correios (CEP genérico de cidade, final -000, é recusado).
     //   Pra fora do Brasil não tem CEP real pra mandar — usa o placeholder
@@ -641,7 +661,7 @@ export async function POST(request: Request) {
       name: pessoais.nome,
       email: pessoais.email,
       cpfCnpj: pessoais.cpf,
-      phone: pessoais.telefone,
+      phone: telefoneAsaas(pessoais),
       address: endereco.logradouro,
       addressNumber: endereco.numero,
       complement: endereco.complemento ?? undefined,

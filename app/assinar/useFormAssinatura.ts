@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AsYouType, type CountryCode } from "libphonenumber-js";
 
 import { formatarValor } from "@/lib/formatacao";
 import { PAIS_PADRAO } from "@/lib/paises";
 import { calcularAcrescimoInternacional } from "@/lib/precos";
 import { createClient } from "@/lib/supabase/client";
+import { validarTelefone } from "@/lib/telefone";
 import {
   apenasDigitos,
   formatarCEP,
@@ -69,6 +71,7 @@ export type CamposForm = {
   email: string;
   cpf: string;
   telefone: string;
+  paisTelefone: string;
   pais: string;
   cep: string;
   logradouro: string;
@@ -92,6 +95,7 @@ const CAMPOS_INICIAIS = (
   email: "",
   cpf: "",
   telefone: "",
+  paisTelefone: PAIS_PADRAO,
   pais: PAIS_PADRAO,
   cep: "",
   logradouro: "",
@@ -137,9 +141,8 @@ function validarCampos(
 
   if (!validarCPF(campos.cpf)) erros.cpf = "CPF inválido";
 
-  const telefone = apenasDigitos(campos.telefone);
-  if (telefone.length < 10 || telefone.length > 11)
-    erros.telefone = "Telefone inválido (DDD + número)";
+  if (!validarTelefone(campos.telefone, campos.paisTelefone).valido)
+    erros.telefone = "Telefone inválido";
 
   const ehBrasil = campos.pais === "BR";
 
@@ -213,6 +216,11 @@ export function useFormAssinatura(
   const [cepMensagem, setCepMensagem] = useState<string | null>(null);
   const [cepGenerico, setCepGenerico] = useState(false);
   const [enderecoBloqueado, setEnderecoBloqueado] = useState(false);
+
+  // Enquanto a pessoa não mexer no país do endereço, ele segue sugerido pelo
+  // país do telefone (mesmo os dois campos sendo independentes). No momento
+  // em que ela troca o país do endereço na mão, a sugestão para de valer.
+  const [enderecoPaisManual, setEnderecoPaisManual] = useState(false);
 
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
@@ -482,20 +490,40 @@ export function useFormAssinatura(
   }
 
   function atualizarTelefone(valor: string) {
-    atualizarCampo("telefone", formatarTelefone(valor));
+    if (campos.paisTelefone === "BR") {
+      atualizarCampo("telefone", formatarTelefone(valor));
+      return;
+    }
+    atualizarCampo(
+      "telefone",
+      new AsYouType(campos.paisTelefone as CountryCode).input(valor),
+    );
   }
 
-  function atualizarPais(codigo: string) {
+  // Só o efeito colateral de trocar o país do endereço (reset do estado de
+  // CEP/UF, que só vale pro Brasil). Compartilhado entre a troca manual
+  // (atualizarPais) e a sugestão automática vinda do país do telefone.
+  function aplicarPaisEndereco(codigo: string) {
     atualizarCampo("pais", codigo);
-    // A busca automática e o formato de CEP/UF só valem pro Brasil — troca
-    // de país zera esse estado pra não ficar preso a uma regra que não vale
-    // mais.
     setCepStatus("ocioso");
     setCepMensagem(null);
     setCepGenerico(false);
     setEnderecoBloqueado(false);
     limparErroChave("cep");
     limparErroChave("uf");
+  }
+
+  function atualizarPaisTelefone(codigo: string) {
+    atualizarCampo("paisTelefone", codigo);
+    atualizarCampo("telefone", "");
+    // Sugestão, não vínculo: só ajusta o país do endereço enquanto a pessoa
+    // não tiver escolhido um na mão.
+    if (!enderecoPaisManual) aplicarPaisEndereco(codigo);
+  }
+
+  function atualizarPais(codigo: string) {
+    setEnderecoPaisManual(true);
+    aplicarPaisEndereco(codigo);
   }
 
   function atualizarUf(valor: string) {
@@ -631,6 +659,7 @@ export function useFormAssinatura(
           email: campos.email.trim(),
           cpf: apenasDigitos(campos.cpf),
           telefone: apenasDigitos(campos.telefone),
+          pais_telefone: campos.paisTelefone,
           cep: ehBrasil ? apenasDigitos(campos.cep) : campos.cep.trim(),
           logradouro: campos.logradouro.trim(),
           numero: campos.numero.trim(),
@@ -702,6 +731,7 @@ export function useFormAssinatura(
     atualizarCampo,
     atualizarCPF,
     atualizarTelefone,
+    atualizarPaisTelefone,
     atualizarPais,
     atualizarUf,
     atualizarCEP,
