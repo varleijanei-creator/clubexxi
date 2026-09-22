@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { usuarioAtual } from "@/lib/auth/usuario-atual";
 import { ehAdmin } from "@/lib/auth/autorizacao";
-import { CATEGORIAS, CONTEXTOS } from "@/lib/admin/produtos";
+import { CATEGORIAS, CONTEXTOS } from "@/lib/admin/produtos-tipos";
+import type { EstadoProduto, EstadoPreco, ValoresProduto, ValoresPreco } from "@/lib/admin/produtos-tipos";
 
 /**
  * Escritas da Tela 4 (Produtos). Server Actions pelo mesmo motivo das
@@ -15,6 +16,13 @@ import { CATEGORIAS, CONTEXTOS } from "@/lib/admin/produtos";
  *
  * Cada função confere sessão e admin de novo — Server Action não passa
  * pelo guard do layout.
+ *
+ * criarProduto/atualizarProduto/criarPreco/atualizarPreco usam a assinatura
+ * (estadoAnterior, formData) do useActionState: em erro de validação
+ * devolvem { erro, valores } em vez de redirect, pro formulário reaparecer
+ * com o que a pessoa digitou. excluirProduto/excluirPreco continuam
+ * redirect simples — são só um clique de confirmação, não há dado digitado
+ * pra perder.
  */
 async function exigirAdmin(): Promise<void> {
   const usuario = await usuarioAtual();
@@ -28,108 +36,97 @@ function texto(formData: FormData, campo: string): string {
 }
 
 const SLUG_VALIDO = /^[a-z0-9-]+$/;
-const CATEGORIAS_VALIDAS = new Set(CATEGORIAS.map((c) => c.valor));
-const CONTEXTOS_VALIDOS = new Set(CONTEXTOS.map((c) => c.valor));
+const CATEGORIAS_VALIDAS = new Set<string>(CATEGORIAS.map((c) => c.valor));
+const CONTEXTOS_VALIDOS = new Set<string>(CONTEXTOS.map((c) => c.valor));
 
-function erroProduto(slug: string | null, mensagem: string): never {
-  const destino = slug ? `/admin/produtos/${slug}` : "/admin/produtos";
-  redirect(`${destino}?erro=${encodeURIComponent(mensagem)}`);
+function valoresProdutoDoForm(formData: FormData, extra?: Partial<ValoresProduto>): ValoresProduto {
+  return {
+    slug: texto(formData, "slug"),
+    nome: texto(formData, "nome"),
+    categoria: texto(formData, "categoria"),
+    descricao: texto(formData, "descricao"),
+    estoque: texto(formData, "estoque"),
+    ordem: texto(formData, "ordem"),
+    imagem_url: texto(formData, "imagem_url"),
+    bump_titulo: texto(formData, "bump_titulo"),
+    bump: formData.get("bump") === "on",
+    pede_endereco: formData.get("pede_endereco") === "on",
+    cabe_envelope: formData.get("cabe_envelope") === "on",
+    ativo: formData.get("ativo") === "on",
+    ...extra,
+  };
 }
 
-export async function criarProduto(formData: FormData): Promise<void> {
-  await exigirAdmin();
-
-  const slug = texto(formData, "slug").toLowerCase();
-  const nome = texto(formData, "nome");
-  const categoria = texto(formData, "categoria");
-  const descricao = texto(formData, "descricao");
-  const estoqueTexto = texto(formData, "estoque");
-  const ordemTexto = texto(formData, "ordem");
-  const imagemUrl = texto(formData, "imagem_url");
-  const bump = formData.get("bump") === "on";
-  const bumpTitulo = texto(formData, "bump_titulo");
-  const pedeEndereco = formData.get("pede_endereco") === "on";
-  const cabeEnvelope = formData.get("cabe_envelope") === "on";
-
-  if (!slug || !SLUG_VALIDO.test(slug)) {
-    erroProduto(null, "Slug é obrigatório e só pode ter letras minúsculas, números e hífen.");
-  }
-  if (!nome) erroProduto(null, "Nome é obrigatório.");
-  if (!CATEGORIAS_VALIDAS.has(categoria as (typeof CATEGORIAS)[number]["valor"])) {
-    erroProduto(null, "Escolha uma categoria válida.");
-  }
+function validarComuns(valores: ValoresProduto): { estoque: number | null; ordem: number } | string {
+  if (!valores.nome) return "Nome é obrigatório.";
+  if (!CATEGORIAS_VALIDAS.has(valores.categoria)) return "Escolha uma categoria válida.";
 
   let estoque: number | null = null;
-  if (estoqueTexto) {
-    const n = Number(estoqueTexto);
-    if (!Number.isInteger(n) || n < 0) erroProduto(null, "Estoque precisa ser um número inteiro, 0 ou maior.");
+  if (valores.estoque) {
+    const n = Number(valores.estoque);
+    if (!Number.isInteger(n) || n < 0) return "Estoque precisa ser um número inteiro, 0 ou maior.";
     estoque = n;
   }
 
-  const ordem = ordemTexto ? Number(ordemTexto) : 0;
-  if (!Number.isFinite(ordem)) erroProduto(null, "Ordem precisa ser um número.");
+  const ordem = valores.ordem ? Number(valores.ordem) : 0;
+  if (!Number.isFinite(ordem)) return "Ordem precisa ser um número.";
+
+  return { estoque, ordem };
+}
+
+export async function criarProduto(_estadoAnterior: EstadoProduto, formData: FormData): Promise<EstadoProduto> {
+  await exigirAdmin();
+
+  const valores = valoresProdutoDoForm(formData, { slug: texto(formData, "slug").toLowerCase() });
+
+  if (!valores.slug || !SLUG_VALIDO.test(valores.slug)) {
+    return { erro: "Slug é obrigatório e só pode ter letras minúsculas, números e hífen.", valores };
+  }
+
+  const comuns = validarComuns(valores);
+  if (typeof comuns === "string") return { erro: comuns, valores };
 
   const supabase = createServiceClient();
   // ativo nasce false sempre — não é campo do formulário de criação, é a
   // regra do spec ("nasce false de propósito"). Só liga depois, na edição,
   // quando já tiver preço ativo cadastrado.
   const { error } = await supabase.from("produtos").insert({
-    slug,
-    nome,
-    descricao: descricao || null,
-    categoria,
+    slug: valores.slug,
+    nome: valores.nome,
+    descricao: valores.descricao || null,
+    categoria: valores.categoria,
     ativo: false,
-    bump,
-    bump_titulo: bumpTitulo || null,
-    pede_endereco: pedeEndereco,
-    cabe_envelope: cabeEnvelope,
-    estoque,
-    ordem,
-    imagem_url: imagemUrl || null,
+    bump: valores.bump,
+    bump_titulo: valores.bump_titulo || null,
+    pede_endereco: valores.pede_endereco,
+    cabe_envelope: valores.cabe_envelope,
+    estoque: comuns.estoque,
+    ordem: comuns.ordem,
+    imagem_url: valores.imagem_url || null,
   });
 
   if (error) {
-    erroProduto(null, error.code === "23505" ? "Já existe um produto com esse slug." : `Erro ao salvar: ${error.message}`);
+    return {
+      erro: error.code === "23505" ? "Já existe um produto com esse slug." : `Erro ao salvar: ${error.message}`,
+      valores,
+    };
   }
 
   revalidatePath("/admin/produtos");
-  redirect(`/admin/produtos/${slug}?sucesso=Produto+criado.+Ainda+está+inativo.`);
+  redirect(`/admin/produtos/${valores.slug}?sucesso=Produto+criado.+Ainda+está+inativo.`);
 }
 
-export async function atualizarProduto(formData: FormData): Promise<void> {
+export async function atualizarProduto(_estadoAnterior: EstadoProduto, formData: FormData): Promise<EstadoProduto> {
   await exigirAdmin();
 
-  const slug = texto(formData, "slug");
-  if (!slug) erroProduto(null, "Produto inválido.");
+  const valores = valoresProdutoDoForm(formData);
+  const slug = valores.slug;
+  if (!slug) return { erro: "Produto inválido.", valores };
 
-  const nome = texto(formData, "nome");
-  const categoria = texto(formData, "categoria");
-  const descricao = texto(formData, "descricao");
-  const estoqueTexto = texto(formData, "estoque");
-  const ordemTexto = texto(formData, "ordem");
-  const imagemUrl = texto(formData, "imagem_url");
-  const bump = formData.get("bump") === "on";
-  const bumpTitulo = texto(formData, "bump_titulo");
-  const pedeEndereco = formData.get("pede_endereco") === "on";
-  const cabeEnvelope = formData.get("cabe_envelope") === "on";
-  const ativo = formData.get("ativo") === "on";
+  const comuns = validarComuns(valores);
+  if (typeof comuns === "string") return { erro: comuns, valores };
 
-  if (!nome) erroProduto(slug, "Nome é obrigatório.");
-  if (!CATEGORIAS_VALIDAS.has(categoria as (typeof CATEGORIAS)[number]["valor"])) {
-    erroProduto(slug, "Escolha uma categoria válida.");
-  }
-
-  let estoque: number | null = null;
-  if (estoqueTexto) {
-    const n = Number(estoqueTexto);
-    if (!Number.isInteger(n) || n < 0) erroProduto(slug, "Estoque precisa ser um número inteiro, 0 ou maior.");
-    estoque = n;
-  }
-
-  const ordem = ordemTexto ? Number(ordemTexto) : 0;
-  if (!Number.isFinite(ordem)) erroProduto(slug, "Ordem precisa ser um número.");
-
-  if (ativo) {
+  if (valores.ativo) {
     const supabaseChecagem = createServiceClient();
     const { count } = await supabaseChecagem
       .from("produtos_precos")
@@ -137,10 +134,10 @@ export async function atualizarProduto(formData: FormData): Promise<void> {
       .eq("produto_slug", slug)
       .eq("ativo", true);
     if (!count) {
-      erroProduto(
-        slug,
-        "Cadastre um preço ativo antes de ativar o produto — regra do spec: \"só aparece com preço ativo cadastrado\".",
-      );
+      return {
+        erro: 'Cadastre um preço ativo antes de ativar o produto — regra do spec: "só aparece com preço ativo cadastrado".',
+        valores,
+      };
     }
   }
 
@@ -148,21 +145,21 @@ export async function atualizarProduto(formData: FormData): Promise<void> {
   const { error } = await supabase
     .from("produtos")
     .update({
-      nome,
-      descricao: descricao || null,
-      categoria,
-      ativo,
-      bump,
-      bump_titulo: bumpTitulo || null,
-      pede_endereco: pedeEndereco,
-      cabe_envelope: cabeEnvelope,
-      estoque,
-      ordem,
-      imagem_url: imagemUrl || null,
+      nome: valores.nome,
+      descricao: valores.descricao || null,
+      categoria: valores.categoria,
+      ativo: valores.ativo,
+      bump: valores.bump,
+      bump_titulo: valores.bump_titulo || null,
+      pede_endereco: valores.pede_endereco,
+      cabe_envelope: valores.cabe_envelope,
+      estoque: comuns.estoque,
+      ordem: comuns.ordem,
+      imagem_url: valores.imagem_url || null,
     })
     .eq("slug", slug);
 
-  if (error) erroProduto(slug, `Erro ao salvar: ${error.message}`);
+  if (error) return { erro: `Erro ao salvar: ${error.message}`, valores };
 
   revalidatePath("/admin/produtos");
   revalidatePath(`/admin/produtos/${slug}`);
@@ -179,64 +176,69 @@ export async function excluirProduto(formData: FormData): Promise<void> {
   // preços dele junto, de propósito (confirmado no schema antes de montar
   // esta ação).
   const { error } = await supabase.from("produtos").delete().eq("slug", slug);
-  if (error) erroProduto(slug, `Erro ao excluir: ${error.message}`);
+  if (error) redirect(`/admin/produtos/${slug}?erro=${encodeURIComponent(`Erro ao excluir: ${error.message}`)}`);
 
   revalidatePath("/admin/produtos");
   redirect("/admin/produtos?sucesso=Produto+excluído.");
 }
 
-export async function criarPreco(formData: FormData): Promise<void> {
+function valoresPrecoDoForm(formData: FormData): ValoresPreco {
+  return {
+    contexto: texto(formData, "contexto"),
+    valor: texto(formData, "valor"),
+    ativo: formData.get("ativo") === "on",
+  };
+}
+
+function validarPreco(valores: ValoresPreco): number | string {
+  if (!CONTEXTOS_VALIDOS.has(valores.contexto)) return "Escolha um contexto de preço válido.";
+  const valor = Number(valores.valor.replace(",", "."));
+  if (!Number.isFinite(valor) || valor < 0) return "Valor precisa ser um número, 0 ou maior.";
+  return valor;
+}
+
+export async function criarPreco(_estadoAnterior: EstadoPreco, formData: FormData): Promise<EstadoPreco> {
   await exigirAdmin();
 
   const slug = texto(formData, "produto_slug");
-  const contexto = texto(formData, "contexto");
-  const valorTexto = texto(formData, "valor").replace(",", ".");
-  const ativo = formData.get("ativo") === "on";
-
+  const valores = valoresPrecoDoForm(formData);
   if (!slug) redirect("/admin/produtos");
-  if (!CONTEXTOS_VALIDOS.has(contexto as (typeof CONTEXTOS)[number]["valor"])) {
-    erroProduto(slug, "Escolha um contexto de preço válido.");
-  }
-  const valor = Number(valorTexto);
-  if (!Number.isFinite(valor) || valor < 0) erroProduto(slug, "Valor precisa ser um número, 0 ou maior.");
+
+  const valorOuErro = validarPreco(valores);
+  if (typeof valorOuErro === "string") return { erro: valorOuErro, valores };
 
   const supabase = createServiceClient();
   const { error } = await supabase.from("produtos_precos").insert({
     produto_slug: slug,
-    contexto,
-    valor,
-    ativo,
+    contexto: valores.contexto,
+    valor: valorOuErro,
+    ativo: valores.ativo,
   });
 
-  if (error) erroProduto(slug, `Erro ao salvar preço: ${error.message}`);
+  if (error) return { erro: `Erro ao salvar preço: ${error.message}`, valores };
 
   revalidatePath(`/admin/produtos/${slug}`);
   redirect(`/admin/produtos/${slug}?sucesso=Preço+adicionado.`);
 }
 
-export async function atualizarPreco(formData: FormData): Promise<void> {
+export async function atualizarPreco(_estadoAnterior: EstadoPreco, formData: FormData): Promise<EstadoPreco> {
   await exigirAdmin();
 
   const id = texto(formData, "id");
   const slug = texto(formData, "produto_slug");
-  const contexto = texto(formData, "contexto");
-  const valorTexto = texto(formData, "valor").replace(",", ".");
-  const ativo = formData.get("ativo") === "on";
-
+  const valores = valoresPrecoDoForm(formData);
   if (!id || !slug) redirect("/admin/produtos");
-  if (!CONTEXTOS_VALIDOS.has(contexto as (typeof CONTEXTOS)[number]["valor"])) {
-    erroProduto(slug, "Escolha um contexto de preço válido.");
-  }
-  const valor = Number(valorTexto);
-  if (!Number.isFinite(valor) || valor < 0) erroProduto(slug, "Valor precisa ser um número, 0 ou maior.");
+
+  const valorOuErro = validarPreco(valores);
+  if (typeof valorOuErro === "string") return { erro: valorOuErro, valores };
 
   const supabase = createServiceClient();
   const { error } = await supabase
     .from("produtos_precos")
-    .update({ contexto, valor, ativo })
+    .update({ contexto: valores.contexto, valor: valorOuErro, ativo: valores.ativo })
     .eq("id", id);
 
-  if (error) erroProduto(slug, `Erro ao salvar preço: ${error.message}`);
+  if (error) return { erro: `Erro ao salvar preço: ${error.message}`, valores };
 
   revalidatePath(`/admin/produtos/${slug}`);
   redirect(`/admin/produtos/${slug}?sucesso=Preço+atualizado.`);
@@ -251,7 +253,7 @@ export async function excluirPreco(formData: FormData): Promise<void> {
 
   const supabase = createServiceClient();
   const { error } = await supabase.from("produtos_precos").delete().eq("id", id);
-  if (error) erroProduto(slug, `Erro ao excluir preço: ${error.message}`);
+  if (error) redirect(`/admin/produtos/${slug}?erro=${encodeURIComponent(`Erro ao excluir preço: ${error.message}`)}`);
 
   revalidatePath(`/admin/produtos/${slug}`);
   redirect(`/admin/produtos/${slug}?sucesso=Preço+excluído.`);

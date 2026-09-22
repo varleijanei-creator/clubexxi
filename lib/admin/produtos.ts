@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import type { Preco, ProdutoLinha, DetalheProduto } from "@/lib/admin/produtos-tipos";
 
 /**
  * Dados da Tela 4 (Produtos) do painel admin — spec-painel-admin.md.
@@ -10,41 +11,9 @@ import { createServiceClient } from "@/lib/supabase/server";
  * passa, nem logado como admin.
  */
 
-export const CATEGORIAS = [
-  { valor: "print", rotulo: "Print" },
-  { valor: "carta_taro", rotulo: "Carta de tarô" },
-  { valor: "edicao", rotulo: "Edição avulsa" },
-  { valor: "baralho", rotulo: "Baralho" },
-  { valor: "presente", rotulo: "Presente" },
-  { valor: "vestuario", rotulo: "Vestuário" },
-  { valor: "acessorio", rotulo: "Acessório" },
-  { valor: "outro", rotulo: "Outro" },
-] as const;
-
-export const CONTEXTOS = [
-  { valor: "avulso", rotulo: "Avulso (Shop)" },
-  { valor: "bump", rotulo: "Order bump (checkout)" },
-] as const;
-
-export type Preco = {
-  id: string;
-  contexto: string;
-  valor: number;
-  ativo: boolean;
-};
-
-export type ProdutoLinha = {
-  slug: string;
-  nome: string;
-  categoria: string;
-  ativo: boolean;
-  bump: boolean;
-  cabeEnvelope: boolean;
-  pedeEndereco: boolean;
-  estoque: number | null;
-  ordem: number;
-  precos: Preco[];
-};
+// Reexporta pros arquivos de servidor que importavam daqui — só componente
+// de cliente precisa ir direto em produtos-tipos.
+export { CATEGORIAS, CONTEXTOS, type Preco, type ProdutoLinha, type DetalheProduto } from "@/lib/admin/produtos-tipos";
 
 type ProdutoBruto = {
   slug: string;
@@ -94,22 +63,6 @@ export async function buscarProdutos(): Promise<ProdutoLinha[]> {
   }));
 }
 
-export type DetalheProduto = {
-  slug: string;
-  nome: string;
-  descricao: string | null;
-  categoria: string;
-  ativo: boolean;
-  bump: boolean;
-  bumpTitulo: string | null;
-  pedeEndereco: boolean;
-  cabeEnvelope: boolean;
-  estoque: number | null;
-  ordem: number;
-  imagemUrl: string | null;
-  precos: Preco[];
-};
-
 export async function buscarProduto(slug: string): Promise<DetalheProduto | null> {
   const supabase = createServiceClient();
   const { data, error } = await supabase
@@ -123,7 +76,11 @@ export async function buscarProduto(slug: string): Promise<DetalheProduto | null
   }
   if (!data) return null;
 
-  const p = data as unknown as ProdutoBruto & { descricao: string | null; bump_titulo: string | null; imagem_url: string | null };
+  const p = data as unknown as ProdutoBruto & {
+    descricao: string | null;
+    bump_titulo: string | null;
+    imagem_url: string | null;
+  };
   return {
     slug: p.slug,
     nome: p.nome,
