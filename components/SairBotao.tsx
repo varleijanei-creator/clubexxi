@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SairBotao() {
+/** Botão de sair, compartilhado entre /admin e /minha-conta — só muda o destino. */
+export default function SairBotao({ destino }: { destino: string }) {
   const router = useRouter();
 
   async function sair() {
@@ -16,7 +17,7 @@ export default function SairBotao() {
       // ainda existir. Só loga pra não ficar sem rastro nenhum.
       console.error("[auth] erro ao sair", err);
     }
-    router.replace("/admin/login");
+    router.replace(destino);
     router.refresh();
   }
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ehAdmin } from "@/lib/auth/autorizacao";
 import { usuarioAtual } from "@/lib/auth/usuario-atual";
-import SairBotao from "./SairBotao";
+import SairBotao from "@/components/SairBotao";
 
 // As cinco rotas do spec-painel-admin.md — todas construídas.
 const NAV = [
@@ -51,7 +51,7 @@ export default async function LayoutAdminProtegido({
             ))}
           </nav>
         </div>
-        <SairBotao />
+        <SairBotao destino="/admin/login" />
       </header>
       <main className="p-6">{children}</main>
     </div>
