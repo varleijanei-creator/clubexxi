@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-/** Link de indicação + botão de copiar — única parte desta tela que precisa de JS (clipboard). */
+/** Link + botão de copiar — usado em /admin (afiliadas) e /minha-conta (indicação). */
 export default function CopiarLink({ link }: { link: string }) {
   const [copiado, setCopiado] = useState(false);
 

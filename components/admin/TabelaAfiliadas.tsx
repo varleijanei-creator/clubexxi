@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { AfiliadaLinha } from "@/lib/admin/afiliadas";
 import { linkIndicacao } from "@/lib/admin/afiliadas";
-import CopiarLink from "./CopiarLink";
+import CopiarLink from "@/components/CopiarLink";
 
 function formatarPercentual(valor: number): string {
   return `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;

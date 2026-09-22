@@ -3,7 +3,7 @@ import Link from "next/link";
 import { buscarDetalheAfiliada, linkIndicacao } from "@/lib/admin/afiliadas";
 import { formatarDataAdmin } from "@/lib/admin/formato";
 import { paramTexto } from "@/lib/searchParams";
-import CopiarLink from "@/components/admin/CopiarLink";
+import CopiarLink from "@/components/CopiarLink";
 import SeloStatus from "@/components/admin/SeloStatus";
 import TabelaComissoes from "@/components/admin/TabelaComissoes";
 import FormEditarAfiliada from "@/components/admin/FormEditarAfiliada";
