@@ -1,8 +1,16 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { ehAdmin } from "@/lib/auth/autorizacao";
 import { usuarioAtual } from "@/lib/auth/usuario-atual";
 import SairBotao from "./SairBotao";
+
+// Só as rotas já construídas (spec-painel-admin.md tem mais: afiliadas,
+// produtos — entram aqui conforme forem sendo feitas).
+const NAV = [
+  { href: "/admin", rotulo: "Painel" },
+  { href: "/admin/membras", rotulo: "Membras" },
+];
 
 /**
  * Guard de tudo sob /admin (exceto /admin/login, que fica fora deste route
@@ -22,13 +30,26 @@ export default async function LayoutAdminProtegido({
 
   return (
     <div className="min-h-screen bg-[var(--c21-papel-fundo)]">
-      <header className="flex items-center justify-between border-b border-[var(--c21-linha)] bg-[var(--c21-papel)] px-6 py-3">
-        <span
-          className="text-sm font-normal text-[var(--c21-tinta)]"
-          style={{ fontFamily: "var(--c21-fonte-display)" }}
-        >
-          Painel Clube 21
-        </span>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--c21-linha)] bg-[var(--c21-papel)] px-6 py-3">
+        <div className="flex flex-wrap items-center gap-5">
+          <span
+            className="text-sm font-normal text-[var(--c21-tinta)]"
+            style={{ fontFamily: "var(--c21-fonte-display)" }}
+          >
+            Painel Clube 21
+          </span>
+          <nav className="flex gap-4">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm text-[var(--c21-tinta-suave)] hover:text-[var(--c21-tinta)]"
+              >
+                {item.rotulo}
+              </Link>
+            ))}
+          </nav>
+        </div>
         <SairBotao />
       </header>
       <main className="p-6">{children}</main>

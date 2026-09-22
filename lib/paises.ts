@@ -259,3 +259,10 @@ export const PAISES: Pais[] = [
   { codigo: "ZM", nome: "Zâmbia" },
   { codigo: "ZW", nome: "Zimbábue" },
 ];
+
+const NOMES_POR_CODIGO = new Map(PAISES.map((p) => [p.codigo, p.nome]));
+
+/** Nome em pt-BR pro código ISO; devolve o próprio código se não estiver na lista. */
+export function nomeDoPais(codigo: string): string {
+  return NOMES_POR_CODIGO.get(codigo) ?? codigo;
+}
