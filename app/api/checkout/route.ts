@@ -10,6 +10,7 @@ import {
 } from "@/lib/asaas";
 import { createServiceClient } from "@/lib/supabase/server";
 import { validarTelefone } from "@/lib/telefone";
+import { pixAtivo } from "@/lib/pagamento";
 
 export const runtime = "nodejs";
 
@@ -474,6 +475,18 @@ export async function POST(request: Request) {
   if (!FORMAS_PAGAMENTO.includes(formaPagamento)) {
     return NextResponse.json(
       { error: "forma_pagamento inválida" },
+      { status: 400 },
+    );
+  }
+
+  // PIX_ATIVO desligado (ver lib/pagamento.ts): recusa aqui, antes de
+  // validar o resto do corpo, gravar pedido ou chamar o Asaas. Não mexe em
+  // quem já assina por Pix — isso é outro fluxo (webhook, renovação),
+  // criado antes do checkout e sem relação com esta rota.
+  if (formaPagamento === "PIX" && !pixAtivo()) {
+    console.error("[checkout] 400: PIX solicitado com PIX_ATIVO desligado");
+    return NextResponse.json(
+      { error: "Forma de pagamento indisponível" },
       { status: 400 },
     );
   }

@@ -304,10 +304,12 @@ function SeletorPagamento({
   valor,
   onChange,
   trimestral,
+  pixAtivo,
 }: {
   valor: FormaPagamento;
   onChange: (v: FormaPagamento) => void;
   trimestral: boolean;
+  pixAtivo: boolean;
 }) {
   const opcoes: { valor: FormaPagamento; titulo: string; texto: string }[] = [
     {
@@ -317,13 +319,19 @@ function SeletorPagamento({
         ? "Cobrança automática a cada 3 meses."
         : "Cobrança automática todo mês.",
     },
-    {
-      valor: "PIX",
-      titulo: "Pix",
-      texto: trimestral
-        ? "A cada 3 meses você recebe um novo Pix por e-mail pra pagar."
-        : "A cada mês você recebe um novo Pix por e-mail pra pagar.",
-    },
+    // Pix desligado (PIX_ATIVO != "true"): some da lista, cartão fica como
+    // única opção — já é o que vem selecionado por padrão no hook.
+    ...(pixAtivo
+      ? [
+          {
+            valor: "PIX" as const,
+            titulo: "Pix",
+            texto: trimestral
+              ? "A cada 3 meses você recebe um novo Pix por e-mail pra pagar."
+              : "A cada mês você recebe um novo Pix por e-mail pra pagar.",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -476,10 +484,13 @@ export default function FormAssinatura({
   planoInicial,
   refInicial,
   afInicial,
+  pixAtivo,
 }: {
   planoInicial: string | null;
   refInicial: string | null;
   afInicial: string | null;
+  /** Decidido no servidor por PIX_ATIVO (ver lib/pagamento.ts) — nunca no cliente. */
+  pixAtivo: boolean;
 }) {
   const f = useFormAssinatura(planoInicial, refInicial, afInicial);
 
@@ -865,6 +876,7 @@ export default function FormAssinatura({
         valor={f.formaPagamento}
         onChange={f.selecionarFormaPagamento}
         trimestral={f.planoSelecionado?.ciclo === "trimestral"}
+        pixAtivo={pixAtivo}
       />
 
       <Botao tipo="submit" desabilitado={f.enviando}>

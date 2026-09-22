@@ -1,5 +1,6 @@
 import Rodape from "@/components/landing/Rodape";
 import { paramTexto } from "@/lib/searchParams";
+import { pixAtivo } from "@/lib/pagamento";
 
 import Cabecalho from "./Cabecalho";
 import FormAssinatura from "./FormAssinatura";
@@ -29,6 +30,7 @@ export default async function AssinarPage({
             planoInicial={plano}
             refInicial={ref}
             afInicial={af}
+            pixAtivo={pixAtivo()}
           />
         </div>
       </div>
