@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
  * Callback do link mágico do Supabase Auth (padrão oficial pro App Router):
  * o e-mail leva pra cá com token_hash + type, aqui trocamos por uma sessão
  * de verdade e mandamos a pessoa pra onde ela queria ir. Compartilhado
- * entre /admin e, depois, /minha-conta — nenhuma área tem callback próprio.
+ * entre /admin e /minha-conta — nenhuma área tem callback próprio.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -30,8 +30,11 @@ export async function GET(request: NextRequest) {
     console.error("[auth] falha ao verificar token do link mágico", error);
   }
 
-  // TODO(minha-conta): esse fallback assume painel admin. Quando /minha-conta
-  // existir, decidir o destino do erro a partir do "next" (ou de um parâmetro
-  // de contexto próprio) em vez de sempre voltar pro login do admin.
-  return NextResponse.redirect(`${origin}/admin/login?erro=link_invalido`);
+  // Link inválido/expirado: volta pro login de onde a pessoa veio. "next"
+  // começando com /minha-conta manda pro login de lá; qualquer outro caso
+  // (inclusive next="/", sem contexto) cai no login do admin, como sempre.
+  const loginDestino = next.startsWith("/minha-conta")
+    ? "/minha-conta/login"
+    : "/admin/login";
+  return NextResponse.redirect(`${origin}${loginDestino}?erro=link_invalido`);
 }
