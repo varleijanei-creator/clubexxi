@@ -15,7 +15,7 @@ export default function TabelaMembras({ linhas }: { linhas: LinhaMembra[] }) {
 
   return (
     <div className="overflow-x-auto rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)]">
-      <table className="w-full min-w-[860px] border-collapse text-sm">
+      <table className="w-full min-w-[960px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--c21-linha)] text-left text-xs text-[var(--c21-tinta-suave)]">
             <th className="px-4 py-3 font-medium">Nome</th>
@@ -25,6 +25,7 @@ export default function TabelaMembras({ linhas }: { linhas: LinhaMembra[] }) {
             <th className="px-4 py-3 font-medium">Cidade/país</th>
             <th className="px-4 py-3 font-medium">Entrada</th>
             <th className="px-4 py-3 font-medium">Origem</th>
+            <th className="px-4 py-3 font-medium">Afiliada</th>
           </tr>
         </thead>
         <tbody>
@@ -50,6 +51,7 @@ export default function TabelaMembras({ linhas }: { linhas: LinhaMembra[] }) {
                 {formatarDataAdmin(l.dataEntrada)}
               </td>
               <td className="px-4 py-3 text-[var(--c21-tinta-suave)]">{l.origemRotulo}</td>
+              <td className="px-4 py-3 text-[var(--c21-tinta-suave)]">{l.afiliadaNome ?? "—"}</td>
             </tr>
           ))}
         </tbody>

@@ -2,16 +2,23 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { buscarDetalheAfiliada, linkIndicacao } from "@/lib/admin/afiliadas";
 import { formatarDataAdmin } from "@/lib/admin/formato";
+import { paramTexto } from "@/lib/searchParams";
 import CopiarLink from "@/components/admin/CopiarLink";
 import SeloStatus from "@/components/admin/SeloStatus";
 import TabelaComissoes from "@/components/admin/TabelaComissoes";
+import FormEditarAfiliada from "@/components/admin/FormEditarAfiliada";
 
 export default async function PaginaDetalheAfiliada({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const erro = paramTexto(query, "erro");
+  const sucesso = paramTexto(query, "sucesso");
   const afiliada = await buscarDetalheAfiliada(id);
   if (!afiliada) notFound();
 
@@ -28,6 +35,17 @@ export default async function PaginaDetalheAfiliada({
         </Link>
         <h1 className="mt-1 text-lg font-semibold text-[var(--c21-tinta)]">{afiliada.nome}</h1>
       </div>
+
+      {erro && (
+        <p className="rounded-[var(--c21-raio-sm)] border border-[var(--c21-erro)] bg-[var(--c21-papel)] px-4 py-2 text-sm text-[var(--c21-erro)]">
+          {erro}
+        </p>
+      )}
+      {sucesso && (
+        <p className="rounded-[var(--c21-raio-sm)] border border-[var(--c21-sucesso)] bg-[var(--c21-papel)] px-4 py-2 text-sm text-[var(--c21-sucesso)]">
+          {sucesso}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <section className="rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
@@ -71,6 +89,7 @@ export default async function PaginaDetalheAfiliada({
               </div>
             )}
           </dl>
+          <FormEditarAfiliada afiliada={afiliada} />
         </section>
 
         <section className="rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">

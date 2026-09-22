@@ -498,6 +498,13 @@ export default function FormAssinatura({
         </div>
       )}
 
+      {f.afiliadaIndicadora && (
+        <div className="rounded-[var(--c21-raio-sm)] border border-[var(--c21-tinta)] bg-[var(--c21-amarelo)] px-3 py-2 text-sm text-[var(--c21-tinta)]">
+          Você está entrando pela indicação de{" "}
+          <strong>{f.afiliadaIndicadora.nome}</strong> 🍑
+        </div>
+      )}
+
       {/* Plano */}
       <section className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
         <h2

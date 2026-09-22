@@ -339,6 +339,15 @@ export function useFormAssinatura(
       ? opcaoAfiliado(campos.afiliado_codigo)
       : campos.origem;
 
+  // Nome pra mostrar "você está entrando pela indicação de X" quando ?af=
+  // bate com uma afiliada de afiliadosMenu — que já só lista afiliadas
+  // ativas (RPC listar_afiliados_menu), então código inexistente ou de
+  // afiliada inativa cai em null aqui sem precisar de checagem extra.
+  const afiliadaIndicadora = useMemo(
+    () => (afInicial ? (afiliadosMenu.find((a) => a.codigo === afInicial) ?? null) : null),
+    [afInicial, afiliadosMenu],
+  );
+
   const planoSelecionado = useMemo(
     () => planos?.find((p) => p.slug === planoSlug) ?? null,
     [planos, planoSlug],
@@ -758,6 +767,7 @@ export function useFormAssinatura(
     semNumero,
 
     afiliadosMenu,
+    afiliadaIndicadora,
     mostrarMenuOrigem,
     origemSelecionada,
     selecionarOrigem,

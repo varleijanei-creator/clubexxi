@@ -83,6 +83,54 @@ export async function criarAfiliada(formData: FormData): Promise<void> {
   redirect("/admin/afiliadas?sucesso=Afiliada+cadastrada.");
 }
 
+export async function atualizarAfiliada(formData: FormData): Promise<void> {
+  await exigirAdmin();
+
+  const id = texto(formData, "id");
+  if (!id) redirect("/admin/afiliadas");
+
+  const nome = texto(formData, "nome");
+  const email = texto(formData, "email");
+  const telefone = texto(formData, "telefone");
+  const cpfCnpj = texto(formData, "cpf_cnpj");
+  const chavePix = texto(formData, "chave_pix");
+  const percentualTexto = texto(formData, "percentual");
+  const ativo = formData.get("ativo") === "on";
+
+  const erro = (mensagem: string) => redirect(`/admin/afiliadas/${id}?erro=${encodeURIComponent(mensagem)}`);
+
+  if (!nome) erro("Nome é obrigatório.");
+
+  // Código não entra no form — não é campo desta action. Link já divulgado
+  // depende dele.
+  let percentual: number | undefined;
+  if (percentualTexto) {
+    const n = Number(percentualTexto.replace(",", "."));
+    if (!Number.isFinite(n) || n < 0 || n > 100) erro("Percentual precisa ser um número entre 0 e 100.");
+    percentual = n;
+  }
+
+  const supabase = createServiceClient();
+  const { error } = await supabase
+    .from("afiliados")
+    .update({
+      nome,
+      email: email || null,
+      telefone: telefone || null,
+      cpf_cnpj: cpfCnpj || null,
+      chave_pix: chavePix || null,
+      ativo,
+      ...(percentual !== undefined ? { percentual } : {}),
+    })
+    .eq("id", id);
+
+  if (error) erro(`Erro ao salvar: ${error.message}`);
+
+  revalidatePath("/admin/afiliadas");
+  revalidatePath(`/admin/afiliadas/${id}`);
+  redirect(`/admin/afiliadas/${id}?sucesso=Afiliada+atualizada.`);
+}
+
 export async function marcarComissaoPaga(formData: FormData): Promise<void> {
   const email = await exigirAdmin();
 

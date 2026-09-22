@@ -89,6 +89,7 @@ export default async function PaginaDetalheMembro({
               <Campo rotulo="Status" valor={<SeloStatus status={membro.assinaturaAtual.status} />} />
               <Campo rotulo="Valor" valor={formatarValor(membro.assinaturaAtual.valor)} />
               <Campo rotulo="Forma de pagamento" valor={membro.assinaturaAtual.billingType ?? "—"} />
+              <Campo rotulo="Afiliada" valor={membro.assinaturaAtual.afiliadaNome ?? "—"} />
               <Campo
                 rotulo="Próxima cobrança"
                 valor={

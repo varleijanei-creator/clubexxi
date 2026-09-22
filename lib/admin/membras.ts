@@ -224,6 +224,7 @@ export type DetalheAssinatura = {
   criadoEm: string;
   canceladaEm: string | null;
   motivoCancelamento: string | null;
+  afiliadaNome: string | null;
 };
 
 export type DetalheEvento = {
@@ -274,7 +275,7 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
   }
   if (!membroRes.data) return null;
 
-  const [enderecoRes, assinaturasRes, eventosRes, enviosRes, planosRes] = await Promise.all([
+  const [enderecoRes, assinaturasRes, eventosRes, enviosRes, planosRes, afiliadosRes] = await Promise.all([
     supabase
       .from("enderecos")
       .select("cep, logradouro, numero, complemento, bairro, cidade, uf, pais, ponto_referencia")
@@ -282,7 +283,9 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
       .maybeSingle(),
     supabase
       .from("assinaturas")
-      .select("id, plano_slug, status, valor, billing_type, proxima_cobranca, criado_em, cancelada_em, motivo_cancelamento")
+      .select(
+        "id, plano_slug, status, valor, billing_type, proxima_cobranca, criado_em, cancelada_em, motivo_cancelamento, afiliado_id",
+      )
       .eq("membro_id", id)
       .order("criado_em", { ascending: false }),
     supabase
@@ -296,6 +299,7 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
       .eq("membro_id", id)
       .eq("status", "previsto"),
     supabase.from("planos").select("slug, nome"),
+    supabase.from("afiliados").select("id, nome"),
   ]);
 
   for (const [rotulo, res] of [
@@ -304,6 +308,7 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
     ["histórico de eventos", eventosRes],
     ["envios previstos", enviosRes],
     ["planos", planosRes],
+    ["afiliados", afiliadosRes],
   ] as const) {
     if (res.error) {
       throw new Error(`[membras] falha ao ler ${rotulo} do detalhe: ${res.error.message}`);
@@ -311,6 +316,7 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
   }
 
   const nomesPlano = new Map((planosRes.data ?? []).map((p) => [p.slug, p.nome]));
+  const nomesAfiliada = new Map((afiliadosRes.data ?? []).map((a) => [a.id, a.nome]));
   const assinaturas = assinaturasRes.data ?? [];
   const atual = assinaturas[0] ?? null;
 
@@ -350,6 +356,7 @@ export async function buscarDetalheMembro(id: string): Promise<DetalheMembro | n
           criadoEm: atual.criado_em,
           canceladaEm: atual.cancelada_em,
           motivoCancelamento: atual.motivo_cancelamento,
+          afiliadaNome: atual.afiliado_id ? (nomesAfiliada.get(atual.afiliado_id) ?? null) : null,
         }
       : null,
     eventos: (eventosRes.data ?? []).map((e) => ({
