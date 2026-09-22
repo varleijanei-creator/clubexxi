@@ -23,3 +23,14 @@ export function formatarDataAdmin(iso: string): string {
 export function formatarDataHoraAdmin(iso: string): string {
   return formatadorDataHora.format(new Date(iso));
 }
+
+const formatadorCompetencia = new Intl.DateTimeFormat("pt-BR", {
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** "2026-09-01" -> "09/2026", pra coluna de competência das comissões. */
+export function formatarCompetencia(iso: string): string {
+  return formatadorCompetencia.format(new Date(iso));
+}
