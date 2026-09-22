@@ -9,8 +9,17 @@ import FormLogin from "@/components/auth/FormLogin";
 // — loop). Mesmo motivo do /admin/login.
 export default async function PaginaLoginConta() {
   const usuario = await usuarioAtual();
-  if (usuario && (await buscarDadosConta())) {
-    redirect("/minha-conta");
+  if (usuario) {
+    // Mesmo raciocínio do ehAdmin() no /admin/login: se a leitura falhar
+    // por qualquer motivo, não trava a página de login — só não redireciona,
+    // a pessoa vê o formulário e tenta de novo.
+    let dados = null;
+    try {
+      dados = await buscarDadosConta();
+    } catch (err) {
+      console.error("[conta] erro ao checar sessão existente no login", err);
+    }
+    if (dados) redirect("/minha-conta");
   }
 
   return (
