@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { buscarDetalheMembro } from "@/lib/admin/membras";
 import { formatarDataAdmin, formatarDataHoraAdmin } from "@/lib/admin/formato";
 import { formatarValor } from "@/lib/formatacao";
-import SeloStatus from "@/components/admin/SeloStatus";
+import SeloStatus from "@/components/SeloStatus";
 
 function Campo({ rotulo, valor }: { rotulo: string; valor: ReactNode }) {
   return (

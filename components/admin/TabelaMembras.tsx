@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { LinhaMembra } from "@/lib/admin/membras-tipos";
 import { formatarDataAdmin } from "@/lib/admin/formato";
-import SeloStatus from "./SeloStatus";
+import SeloStatus from "@/components/SeloStatus";
 
 /** Lista de membras — spec-painel-admin.md, Tela 2. Só leitura, clique abre o detalhe. */
 export default function TabelaMembras({ linhas }: { linhas: LinhaMembra[] }) {
