@@ -16,7 +16,7 @@ export default function FormLogin({ next }: { next: string }) {
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       options: {
         // Login nunca cria conta nova — quem pode entrar já existe em
         // `admins` ou `membros` (provisionados em outro lugar). Sem isso,
