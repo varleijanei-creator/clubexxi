@@ -1,6 +1,12 @@
+/* Dobra verde que lembra o WhatsApp: fundo no verde da marca,
+   título e botão no verde-escuro, texto do botão em off-white. */
 .secao {
+  --wa-verde: #25d366;
+  --wa-verde-escuro: #075e54;
+  --wa-verde-escuro-hover: #0a4a42;
+
   padding: clamp(var(--c21-e-8), 10vw, 7.5rem) var(--c21-e-3);
-  background: var(--c21-papel);
+  background: var(--wa-verde);
   text-align: center;
 }
 
@@ -19,6 +25,19 @@
   font-weight: 400;
   font-size: clamp(var(--c21-t-lg), 4vw, var(--c21-t-xl));
   line-height: var(--c21-altura-apertada);
-  color: var(--c21-vermelho);
+  color: var(--wa-verde-escuro);
   text-wrap: pretty;
+}
+
+.secao .botao {
+  background: var(--wa-verde-escuro);
+  color: var(--c21-papel);
+}
+
+.secao .botao:hover {
+  background: var(--wa-verde-escuro-hover);
+}
+
+.secao .botao:focus-visible {
+  outline-color: var(--c21-papel);
 }

@@ -13,6 +13,7 @@ export default function FaixaWhatsapp() {
           href="https://wa.me/message/ZEH6RBVPHEMEH1"
           target="_blank"
           rel="noopener noreferrer"
+          className={s.botao}
         >
           Chamar no WhatsApp
         </Botao>
