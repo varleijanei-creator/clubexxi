@@ -115,14 +115,6 @@
   color: var(--c21-tinta);
 }
 
-.planoDescricao {
-  margin: var(--c21-e-1) 0 0;
-  font-size: var(--c21-t-base);
-  line-height: 1.55;
-  color: var(--c21-tinta);
-  text-wrap: pretty;
-}
-
 .planoLista {
   display: flex;
   flex-direction: column;
@@ -145,7 +137,11 @@
 }
 
 .botaoPrimario {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  box-sizing: border-box;
   text-align: center;
   background: var(--c21-acao);
   color: var(--c21-papel);
@@ -161,7 +157,11 @@
 }
 
 .botaoSecundario {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  box-sizing: border-box;
   text-align: center;
   background: var(--c21-papel);
   color: var(--c21-vermelho);
@@ -172,5 +172,19 @@
   font-size: var(--c21-t-base);
   padding: 0.9375rem var(--c21-e-3);
   border-radius: var(--c21-raio-pilula);
+}
+
+/* CTAs menores em tela pequena — min-height:44px continua garantindo área
+   confortável de toque mesmo com padding/fonte reduzidos. */
+@media (max-width: 640px) {
+  .botaoPrimario {
+    font-size: 1.05rem;
+    padding: 0.85rem var(--c21-e-3);
+  }
+
+  .botaoSecundario {
+    font-size: 0.95rem;
+    padding: 0.75rem var(--c21-e-3);
+  }
 }
 

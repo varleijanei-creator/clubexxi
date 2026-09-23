@@ -53,12 +53,18 @@ export default function Planos() {
               <span className={s.planoPrecoSecundario}>R$ 59,90</span>
               <span className={s.planoFreteSecundario}>(frete incluso)</span>
             </div>
-            <p className={s.planoDescricao}>
-              <strong>Um passo além do essencial.</strong> Tudo do Semente,
-              mais o Mão na Massa (drink e receita do mês) e as Histórias das
-              Membras. Ideal pra quem quer sentir mais o clube, sem precisar
-              da experiência completa ainda.
+            <p className={s.planoIntro}>
+              Um passo além do essencial. Você recebe:
             </p>
+            <div className={s.planoLista}>
+              <span>Tiragem e foco do mês</span>
+              <span>Diário Vitor e Diário Varlei</span>
+              <span>Horóscopo do mês</span>
+              <span>As três crônicas do mês</span>
+              <span>Mão na massa (drink + receita)</span>
+              <span>Histórias das membras</span>
+              <span>Classificados C21 (sem poder participar ainda)</span>
+            </div>
             <div className={s.planoAcao}>
               <Link href="/assinar?plano=flor" className={s.botaoSecundario}>
                 Quero o Plano Flor
@@ -72,12 +78,16 @@ export default function Planos() {
               <span className={s.planoPrecoSecundario}>R$ 39,90</span>
               <span className={s.planoFreteSecundario}>(frete incluso)</span>
             </div>
-            <p className={s.planoDescricao}>
-              <strong>O primeiro passo pra viver deliciosamente.</strong>{" "}
-              Tiragem e foco do mês, os diários do Vitor e do Varlei,
-              horóscopo e as três crônicas do mês. Recebe também o
-              Classificados C21 (sem poder participar ainda).
+            <p className={s.planoIntro}>
+              O primeiro passo pra viver deliciosamente. Você recebe:
             </p>
+            <div className={s.planoLista}>
+              <span>Tiragem e foco do mês</span>
+              <span>Diário Vitor e Diário Varlei</span>
+              <span>Horóscopo do mês</span>
+              <span>As três crônicas do mês</span>
+              <span>Classificados C21 (sem poder participar ainda)</span>
+            </div>
             <div className={s.planoAcao}>
               <Link href="/assinar?plano=semente" className={s.botaoSecundario}>
                 Quero o Plano Semente
