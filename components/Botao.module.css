@@ -1,5 +1,9 @@
 .botao {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  box-sizing: border-box;
   background: var(--c21-vermelho);
   color: var(--c21-papel);
   text-decoration: none;
@@ -9,6 +13,15 @@
   border-radius: var(--c21-raio-pilula);
   box-shadow: 0 10px 24px -10px rgba(15, 40, 60, 0.6);
   transition: transform 0.18s var(--c21-curva), background 0.18s ease;
+}
+
+/* CTAs menores em tela pequena — min-height:44px continua garantindo área
+   confortável de toque mesmo com padding/fonte reduzidos. */
+@media (max-width: 640px) {
+  .botao {
+    font-size: 0.92rem;
+    padding: 0.7rem 1.6rem;
+  }
 }
 
 .botao:hover {
