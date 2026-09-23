@@ -14,7 +14,7 @@ export default function SecaoEndereco({ endereco }: { endereco: EnderecoConta | 
           {endereco.cidade}
           {endereco.uf ? `/${endereco.uf}` : ""}
           <br />
-          CEP {endereco.cep ?? "—"} — {nomeDoPais(endereco.pais)}
+          {endereco.cep ? `CEP ${endereco.cep}` : "CEP não informado"} — {nomeDoPais(endereco.pais)}
           {endereco.pontoReferencia && (
             <>
               <br />
