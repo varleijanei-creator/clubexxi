@@ -1,6 +1,16 @@
 .secao {
-  padding: clamp(var(--c21-e-8), 10vw, 7.5rem) var(--c21-e-3);
+  /* base zerada de propósito: a faixa vermelha de fechamento é o último
+     elemento e precisa encostar direto no azul da seção seguinte, sem
+     sobra creme entre as duas. */
+  padding: clamp(var(--c21-e-8), 10vw, 7.5rem) var(--c21-e-3) 0;
   background: var(--c21-papel-fundo);
+  /* a caixa de correio e o lettering do bloco de fechamento sangram de
+     propósito pra fora da faixa — isso não pode criar barra de rolagem
+     lateral no celular. "clip" em vez de "hidden": "hidden" força
+     overflow-y a virar "auto" (regra do CSS quando só um eixo é
+     definido), o que faz a seção reservar espaço extra pro sangramento
+     vertical da caixa de correio — "clip" não tem esse efeito colateral. */
+  overflow-x: clip;
 }
 
 .conteudo {
@@ -22,6 +32,7 @@
   display: block;
   columns: 300px 3;
   column-gap: clamp(var(--c21-e-3), 3vw, var(--c21-e-6));
+  margin-bottom: 0;
 }
 
 .pecas > div {
@@ -131,11 +142,27 @@
   gap: var(--c21-e-1);
 }
 
+/* corte cheio, de ponta a ponta da tela, igual à faixa vermelha logo
+   abaixo — as duas seguidas formam uma banda contínua de fechamento
+   (laranja emenda direto no vermelho, sem creme entre elas). O conteúdo
+   interno continua com respiro/max-width próprio, só o fundo é que vai
+   até a borda.
+   Irmã direta de .secao (fora de .conteudo, que tem max-width) — só
+   cancela o padding lateral da própria seção com margem negativa, em vez
+   do hack 100vw/left:50%, que distorcia a altura do bloco. */
 .destaque {
-  margin-top: clamp(var(--c21-e-4), 4vw, var(--c21-e-6));
+  margin-left: calc(-1 * var(--c21-e-3));
+  margin-right: calc(-1 * var(--c21-e-3));
+  /* mesmo respiro do topo da seção (.secao padding-top), pra separar o
+     grid de cards da banda de fechamento — simétrico, não encostado. */
+  margin-top: clamp(var(--c21-e-8), 10vw, 7.5rem);
   background: var(--c21-laranja);
-  border-radius: var(--c21-raio-md);
-  padding: clamp(var(--c21-e-4), 4vw, var(--c21-e-6));
+}
+
+.destaqueInterno {
+  max-width: var(--c21-largura-pagina);
+  margin: 0 auto;
+  padding: clamp(var(--c21-e-4), 4vw, var(--c21-e-6)) var(--c21-e-3);
   display: flex;
   flex-wrap: wrap;
   gap: clamp(var(--c21-e-4), 4vw, var(--c21-e-6));
@@ -206,37 +233,46 @@
   justify-content: center;
 }
 
+/* faixa cheia, igual a FaixaFrete.module.css: sem cantos arredondados,
+   estendendo até a borda da tela (não fica presa ao max-width de
+   .conteudo). Só as imagens, sem texto — a própria imagem do lettering
+   já diz "Entregamos pro mundo todo!".
+   Irmã direta de .secao, mesma técnica do .destaque acima. */
 .faixaFechamento {
-  margin-top: clamp(var(--c21-e-6), 5vw, var(--c21-e-8));
-  background: color-mix(in srgb, var(--c21-vermelho) 75%, var(--c21-papel) 25%);
-  border-radius: var(--c21-raio-md);
-  padding: clamp(var(--c21-e-3), 3vw, var(--c21-e-4));
+  position: relative;
+  overflow: visible;
+  margin-left: calc(-1 * var(--c21-e-3));
+  margin-right: calc(-1 * var(--c21-e-3));
+  /* zero de propósito: encosta direto na caixa laranja acima, mesmo corte
+     contínuo que ela faz com a seção azul logo abaixo. */
+  margin-top: 0;
+  margin-bottom: 0;
+  background: var(--c21-vermelho);
+  padding: var(--c21-e-3) var(--c21-e-3);
+  min-height: 4.5rem;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--c21-e-3);
 }
 
+/* as duas imagens ficam sobre a faixa (z-index acima do fundo) e sangram
+   pra fora dela em cima e embaixo, porque são maiores que a faixa é alta. */
 .fotoCaixaCorreio {
-  width: clamp(3rem, 6vw, 4.5rem);
+  position: absolute;
+  left: clamp(0.5rem, 4vw, 2.5rem);
+  top: 50%;
+  transform: translateY(-50%) rotate(-6deg);
+  z-index: 2;
+  width: clamp(4.5rem, 13vw, 7.5rem);
   height: auto;
-  display: block;
-  flex-shrink: 0;
 }
 
 .fotoLettering {
-  width: clamp(7rem, 16vw, 11rem);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: clamp(12rem, 30vw, 20rem);
   height: auto;
-  display: block;
-  flex-shrink: 0;
-}
-
-.fechamento {
-  margin: 0;
-  font-family: var(--c21-fonte-display);
-  font-size: clamp(var(--c21-t-md), 3vw, var(--c21-t-lg));
-  line-height: 1.2;
-  color: var(--c21-tinta);
-  text-align: center;
 }

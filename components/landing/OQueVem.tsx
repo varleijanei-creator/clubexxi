@@ -168,8 +168,10 @@ export default function OQueVem() {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className={s.destaque}>
+      <div className={s.destaque}>
+        <div className={s.destaqueInterno}>
           <div className={s.destaqueTexto}>
             <span className={s.selo}>🍑 Exclusivos do Plano Pêssego</span>
             <div className={s.listaDestaque}>
@@ -198,22 +200,25 @@ export default function OQueVem() {
             <Botao href="/assinar">Quero fazer parte do clube!</Botao>
           </div>
         </div>
+      </div>
 
-        <div className={s.faixaFechamento}>
-          <img
-            src="/clube21/caixa de correio.png"
-            alt=""
-            aria-hidden="true"
-            className={s.fotoCaixaCorreio}
-          />
-          <p className={s.fechamento}>E o melhor: enviamos pro mundo todo!</p>
-          <img
-            src="/clube21/entregamos pro mundo todo.png"
-            alt=""
-            aria-hidden="true"
-            className={s.fotoLettering}
-          />
-        </div>
+      <div
+        className={s.faixaFechamento}
+        role="img"
+        aria-label="E o melhor: enviamos pro mundo todo!"
+      >
+        <img
+          src="/clube21/caixa de correio.png"
+          alt=""
+          aria-hidden="true"
+          className={s.fotoCaixaCorreio}
+        />
+        <img
+          src="/clube21/entregamos pro mundo todo.png"
+          alt=""
+          aria-hidden="true"
+          className={s.fotoLettering}
+        />
       </div>
     </section>
   );
