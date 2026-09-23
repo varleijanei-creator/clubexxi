@@ -114,13 +114,13 @@
 .titulo{
   animation:sobe .6s var(--curva) 3.25s forwards;
   font-family:var(--c21-fonte-display);
-  font-weight:500; font-size:clamp(1.05rem,3.6vw,1.9rem); line-height:1.15;
+  font-weight:500; font-size:clamp(var(--c21-t-lg),3.6vw,1.9rem); line-height:1.15;
   max-width:19ch; color:#141411;
 }
 .sub{
   animation:sobe .6s var(--curva) 3.4s forwards;
   margin-top:.45rem; max-width:34ch;
-  font-size:clamp(.78rem,2.2vw,1rem); line-height:1.4; color:#173142;
+  font-size:var(--c21-t-base); line-height:1.4; color:#173142;
 }
 .acao{ animation:sobe .6s var(--curva) 3.56s forwards; margin-top:.85rem }
 
@@ -129,7 +129,7 @@
 .membros{
   position:absolute; top:1.25rem; right:1.25rem; z-index:5;
   opacity:0; animation:sobe .6s var(--curva) 3.72s forwards;
-  font-weight:700; font-size:clamp(.82rem,2vw,.95rem);
+  font-weight:700; font-size:clamp(var(--c21-t-sm),2vw,.95rem);
   color:#141411; text-decoration:none; letter-spacing:.01em;
 }
 .membros:hover{ text-decoration:underline }
