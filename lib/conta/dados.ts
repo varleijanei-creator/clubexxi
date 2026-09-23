@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { usuarioAtual } from "@/lib/auth/usuario-atual";
 
 /**
  * Dados de /minha-conta. Duas fontes por design (ver
@@ -7,8 +8,14 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
  *
  * - `membros`, `assinaturas`, `enderecos`, `creditos`, `indicacoes` têm
  *   policy própria de RLS ("o membro vê só a própria linha") — uso o
- *   cliente de sessão (createClient), sem filtro manual: o RLS já garante
- *   que só a linha da pessoa logada volta.
+ *   cliente de sessão (createClient). MAS também filtro por e-mail/membro.id
+ *   explicitamente em cada uma: quem é admin e membro ao mesmo tempo (caso
+ *   real dos fundadores) tem a policy `admin_le_*` OR'd com a de membro, e
+ *   `admin_le_*` não filtra por e-mail — sem o filtro explícito, essa conta
+ *   veria a linha de todo mundo (e o `.maybeSingle()` de `membros`/
+ *   `enderecos` estouraria com "múltiplas linhas"). O RLS continua sendo a
+ *   barreira real; o filtro aqui é defesa em profundidade, necessária
+ *   justamente pra esse caso.
  * - `pagamentos`, `envios`, `remessas` não têm policy própria — uso a
  *   service role, mas SEMPRE filtrada pelo `membro.id` ou pelos IDs de
  *   `assinaturas` que já vieram de uma leitura com RLS acima. Nunca um
@@ -96,14 +103,23 @@ function linkIndicacao(codigo: string): string {
 }
 
 export const buscarDadosConta = cache(async (): Promise<DadosConta | null> => {
+  const usuario = await usuarioAtual();
+  if (!usuario) return null;
+
   const supabase = await createClient();
 
-  // Sem .eq() de propósito: a policy de RLS de `membros`
-  // (email = auth.jwt() ->> 'email') já garante que só a própria linha
-  // pode voltar aqui, pra qualquer pessoa autenticada.
+  // .eq("email", ...) explícito, apesar da RLS de `membros` já filtrar
+  // por e-mail: quem é admin E membro ao mesmo tempo (caso real dos
+  // fundadores) tem também a policy `admin_le_membros`, sem filtro de
+  // e-mail, OR'd com a de membro — pra essa conta, a RLS sozinha devolve
+  // todas as linhas de `membros`, não só a própria, e o .maybeSingle()
+  // abaixo estoura (PGRST116, "múltiplas linhas"). O filtro aqui restringe
+  // o resultado antes do RLS decidir o que mais liberar, então volta 1
+  // linha sempre, admin ou não.
   const membroRes = await supabase
     .from("membros")
     .select("id, nome, email, telefone, cpf, codigo_indicacao")
+    .eq("email", usuario.email)
     .maybeSingle();
 
   if (membroRes.error) {
@@ -120,19 +136,28 @@ export const buscarDadosConta = cache(async (): Promise<DadosConta | null> => {
     codigoIndicacao: membroRes.data.codigo_indicacao,
   };
 
+  // .eq("membro_id"/"indicador_id", membro.id) explícito em todas: mesmo
+  // motivo do filtro em `membros` acima — pra quem é admin e membro ao
+  // mesmo tempo, a policy `admin_le_*` (sem filtro de e-mail) OR'd com a de
+  // membro devolveria TODAS as linhas dessas tabelas, não só as da própria
+  // pessoa. `membro.id` já veio de uma leitura filtrada por e-mail, então é
+  // seguro usá-lo aqui.
   const [assinaturasRes, enderecoRes, indicacoesRes, creditosRes] = await Promise.all([
     supabase
       .from("assinaturas")
       .select("id, plano_slug, status, valor, billing_type, proxima_cobranca, criado_em, cancelada_em, motivo_cancelamento")
+      .eq("membro_id", membro.id)
       .order("criado_em", { ascending: false }),
     supabase
       .from("enderecos")
       .select("cep, logradouro, numero, complemento, bairro, cidade, uf, pais, ponto_referencia")
+      .eq("membro_id", membro.id)
       .maybeSingle(),
-    supabase.from("indicacoes").select("status"),
+    supabase.from("indicacoes").select("status").eq("indicador_id", membro.id),
     supabase
       .from("creditos")
       .select("ciclo_ref, percentual, status, aplicado_em")
+      .eq("membro_id", membro.id)
       .order("ciclo_ref", { ascending: false }),
   ]);
 
