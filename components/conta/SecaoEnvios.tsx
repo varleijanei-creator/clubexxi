@@ -26,10 +26,11 @@ export default function SecaoEnvios({ envios }: { envios: EnvioConta[] }) {
                   {ROTULO_STATUS[e.status] ?? e.status}
                 </span>
               </div>
-              {e.rastreio && (
+              {(e.rastreio || e.postadoEm) && (
                 <span className="text-xs text-[var(--c21-tinta-suave)]">
-                  Rastreio: {e.rastreio}
-                  {e.postadoEm ? ` — postado em ${formatarDataConta(e.postadoEm)}` : ""}
+                  {e.rastreio && `Rastreio: ${e.rastreio}`}
+                  {e.rastreio && e.postadoEm && " — "}
+                  {e.postadoEm && `postado em ${formatarDataConta(e.postadoEm)}`}
                 </span>
               )}
             </li>
