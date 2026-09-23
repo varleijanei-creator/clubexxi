@@ -20,6 +20,9 @@ export default function Rodape() {
           <a href="/privacidade" className={s.link}>
             Política de privacidade
           </a>
+          <a href="/minha-conta/login" className={s.link}>
+            Já é assinante? Entrar
+          </a>
         </div>
         <p className={s.legal}>
           CNPJ 61.685.219/0001-66 · São Carlos - SP / Brasil
