@@ -62,8 +62,7 @@
 .foto {
   width: 62%;
   height: auto;
-  aspect-ratio: 1 / 1.42;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
   border-radius: var(--c21-raio-sm);
   box-shadow: 0 14px 30px rgba(22, 19, 15, 0.28);
