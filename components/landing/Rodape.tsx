@@ -1,3 +1,4 @@
+import { IconeEmail, IconeInstagram, IconeWhatsapp } from "./IconesRodape";
 import s from "./Rodape.module.css";
 
 export default function Rodape() {
@@ -9,12 +10,23 @@ export default function Rodape() {
             href="https://instagram.com/clubexxi"
             className={s.linkDestaque}
           >
+            <IconeInstagram />
             Instagram @clubexxi
+          </a>
+          <a
+            href="https://wa.me/message/ZEH6RBVPHEMEH1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={s.linkDestaque}
+          >
+            <IconeWhatsapp />
+            WhatsApp
           </a>
           <a
             href="mailto:comercial@clubexxi.com.br"
             className={s.linkDestaque}
           >
+            <IconeEmail />
             comercial@clubexxi.com.br
           </a>
           <a href="/privacidade" className={s.link}>
