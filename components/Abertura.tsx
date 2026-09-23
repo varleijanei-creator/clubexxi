@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import Botao from "./Botao";
 import s from "./Abertura.module.css";
 
@@ -15,6 +17,10 @@ const MATERIAIS = [
 export default function Abertura() {
   return (
     <section className={s.abertura}>
+      <Link href="/minha-conta/login" className={s.membros}>
+        Área de membros
+      </Link>
+
       <div className={s.ceu} aria-hidden="true" />
       <div className={s.veu} aria-hidden="true" />
 
@@ -37,17 +43,19 @@ export default function Abertura() {
         </div>
       </div>
 
-      <h1 className={s.titulo}>
-        Um clube de assinatura de cartas criado pra te fazer viver deliciosamente.
-      </h1>
+      <div className={s.legenda}>
+        <h1 className={s.titulo}>
+          Um clube de assinatura de cartas criado pra te fazer viver deliciosamente.
+        </h1>
 
-      <p className={s.sub}>
-        Todo mês um envelope novo na sua casa, com cartas de verdade.
-        Sem tela, sem pressa e 100% analógico.
-      </p>
+        <p className={s.sub}>
+          Todo mês um envelope novo na sua casa, com cartas de verdade.
+          Sem tela, sem pressa e 100% analógico.
+        </p>
 
-      <div className={s.acao}>
-        <Botao href="/assinar">Quero receber cartas!</Botao>
+        <div className={s.acao}>
+          <Botao href="/assinar">Quero receber cartas!</Botao>
+        </div>
       </div>
     </section>
   );
