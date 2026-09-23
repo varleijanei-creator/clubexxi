@@ -138,6 +138,9 @@
 @keyframes sobe { from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:translateY(0)} }
 
 @media (max-width:640px){
+  /* no celular a legenda sobe: o respiro embaixo tira o texto do rodapé
+     da tela e a animação acima encolhe junto, sem sobrepor. */
+  .legenda{ padding-bottom:max(1.5rem, 12svh) }
   .slide{ padding:4px 4px 12px }
   .estrela{ width:20px }
 }

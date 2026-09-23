@@ -45,7 +45,7 @@ export default function Abertura() {
 
       <div className={s.legenda}>
         <h1 className={s.titulo}>
-          Um clube de assinatura de cartas criado pra te fazer viver deliciosamente.
+          Um clube de assinatura de cartas criado pra te&nbsp;fazer viver deliciosamente.
         </h1>
 
         <p className={s.sub}>
