@@ -9,7 +9,15 @@ export default function ComoFunciona() {
         <h2 className={s.titulo}>Como funciona?</h2>
         <div className={s.passos}>
           <div className={s.passo}>
-            <span className={s.numero}>1</span>
+            <div className={s.cabecalhoPasso}>
+              <span className={s.numero}>1</span>
+              <img
+                src="/clube21/1. Você escolhe o plano e preenche o endereço.png"
+                alt=""
+                aria-hidden="true"
+                className={s.icone}
+              />
+            </div>
             <h3 className={s.passoTitulo}>
               Você escolhe o plano e preenche o endereço.
             </h3>
@@ -19,12 +27,28 @@ export default function ComoFunciona() {
             </p>
           </div>
           <div className={s.passo}>
-            <span className={s.numero}>2</span>
+            <div className={s.cabecalhoPasso}>
+              <span className={s.numero}>2</span>
+              <img
+                src="/clube21/2. A gente monta seu envelope à mão.png"
+                alt=""
+                aria-hidden="true"
+                className={s.icone}
+              />
+            </div>
             <h3 className={s.passoTitulo}>A gente monta seu envelope à mão.</h3>
             <p className={s.passoTexto}>Peça por peça, na semana da postagem.</p>
           </div>
           <div className={s.passo}>
-            <span className={s.numero}>3</span>
+            <div className={s.cabecalhoPasso}>
+              <span className={s.numero}>3</span>
+              <img
+                src="/clube21/3.Chega na sua caixa de correio.png"
+                alt=""
+                aria-hidden="true"
+                className={s.icone}
+              />
+            </div>
             <h3 className={s.passoTitulo}>Chega na sua caixa de correio.</h3>
           </div>
         </div>
