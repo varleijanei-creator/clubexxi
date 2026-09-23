@@ -21,13 +21,13 @@ export default function SecaoPagamentos({ pagamentos }: { pagamentos: PagamentoC
           {pagamentos.map((p) => (
             <li
               key={p.id}
-              className="flex items-center justify-between gap-3 border-b border-[var(--c21-linha)] pb-2 text-sm last:border-0"
+              className="grid grid-cols-[1fr_100px_90px] items-center gap-3 border-b border-[var(--c21-linha)] pb-2 text-sm last:border-0"
             >
               <span className="text-[var(--c21-tinta-suave)]">
                 {p.vencimento ? formatarDataConta(p.vencimento) : "—"}
               </span>
-              <span className="text-[var(--c21-tinta)]">{formatarValor(p.valor)}</span>
-              <span className="text-[var(--c21-tinta-suave)]">
+              <span className="text-right text-[var(--c21-tinta)]">{formatarValor(p.valor)}</span>
+              <span className="text-right text-[var(--c21-tinta-suave)]">
                 {ROTULO_STATUS[p.status] ?? p.status}
               </span>
             </li>
