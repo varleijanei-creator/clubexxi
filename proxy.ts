@@ -1,10 +1,14 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { gravarUtmNoCookie } from "@/lib/utm";
 
 // Nome do arquivo é "proxy.ts", não "middleware.ts" — o Next.js 16 renomeou
 // a convenção e builda com aviso de depreciação usando o nome antigo.
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const response = await updateSession(request);
+  // Link com utm_* em qualquer página vira cookie de 30 dias (lib/utm.ts).
+  gravarUtmNoCookie(request, response);
+  return response;
 }
 
 export const config = {

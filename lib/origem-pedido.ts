@@ -1,4 +1,7 @@
 import type { createServiceClient } from "@/lib/supabase/server";
+import { COOKIES_UTM, lerUtm, type Utm } from "@/lib/utm";
+
+export type { Utm };
 
 /**
  * Origem do pedido — peça isolada que o checkout transparente (branch
@@ -17,11 +20,12 @@ import type { createServiceClient } from "@/lib/supabase/server";
  * URL x cookie: cada grupo é lido como uma unidade, da URL primeiro. Se a URL
  * trouxer af ou ref, o cookie de af/ref é ignorado inteiro (não mistura um
  * ref da URL com um af antigo do cookie). O mesmo vale pras UTMs.
- * Hoje nada grava esses cookies — os nomes ficam definidos aqui pra quem for
- * gravar usar os mesmos.
+ * Os cookies de af/ref ainda não são gravados por ninguém — os nomes ficam
+ * definidos aqui pra quem for gravar usar os mesmos.
  *
- * UTMs: só o espaço. Voltam em `utm`, mas não há coluna pra elas; quem chama
- * decide onde guardar (pedidos.dados_json, por exemplo) quando for a hora.
+ * UTMs: lidas por lerUtm() (lib/utm.ts) — o proxy.ts grava o cookie e quem
+ * chama grava `utm` nas colunas pedidos.utm_* com colunasUtm(). São
+ * independentes de af/ref: nenhum dos dois descarta o outro.
  */
 
 type ClienteServico = ReturnType<typeof createServiceClient>;
@@ -29,22 +33,8 @@ type ClienteServico = ReturnType<typeof createServiceClient>;
 export const COOKIES_ORIGEM = {
   af: "c21_af",
   ref: "c21_ref",
-  utm_source: "c21_utm_source",
-  utm_medium: "c21_utm_medium",
-  utm_campaign: "c21_utm_campaign",
-  utm_term: "c21_utm_term",
-  utm_content: "c21_utm_content",
+  ...COOKIES_UTM,
 } as const;
-
-const CHAVES_UTM = [
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_term",
-  "utm_content",
-] as const;
-
-export type Utm = Partial<Record<(typeof CHAVES_UTM)[number], string>>;
 
 /** Parâmetros da URL (searchParams da página) ou o corpo já parseado do POST. */
 export type ParametrosOrigem =
@@ -56,7 +46,7 @@ export type CookiesOrigem = {
   get(nome: string): { value: string } | undefined;
 };
 
-/** O que vai pro pedido. `utm` ainda não tem coluna (ver acima). */
+/** O que vai pro pedido. `utm` vai nas colunas pedidos.utm_* (colunasUtm). */
 export type OrigemPedido = {
   afiliado_id: string | null;
   ref_code: string | null;
@@ -64,7 +54,6 @@ export type OrigemPedido = {
 };
 
 const TAMANHO_MAX_CODIGO = 40;
-const TAMANHO_MAX_UTM = 150;
 
 function limpar(valor: unknown, max: number): string | null {
   const bruto = Array.isArray(valor) ? valor[0] : valor;
@@ -101,20 +90,7 @@ export function lerOrigemBruta(
     ref = limpar(cookies.get(COOKIES_ORIGEM.ref)?.value, TAMANHO_MAX_CODIGO);
   }
 
-  const utmDe = (ler: (chave: (typeof CHAVES_UTM)[number]) => unknown): Utm | null => {
-    const utm: Utm = {};
-    for (const chave of CHAVES_UTM) {
-      const v = limpar(ler(chave), TAMANHO_MAX_UTM);
-      if (v) utm[chave] = v;
-    }
-    return Object.keys(utm).length > 0 ? utm : null;
-  };
-
-  const utm =
-    utmDe((chave) => lerParametro(params, chave)) ??
-    (cookies ? utmDe((chave) => cookies.get(COOKIES_ORIGEM[chave])?.value) : null);
-
-  return { af, ref, utm };
+  return { af, ref, utm: lerUtm(params, cookies) };
 }
 
 /**

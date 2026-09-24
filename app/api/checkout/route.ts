@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import {
@@ -11,6 +12,7 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import { validarTelefone } from "@/lib/telefone";
 import { pixAtivo } from "@/lib/pagamento";
+import { colunasUtm, lerUtm } from "@/lib/utm";
 
 export const runtime = "nodejs";
 
@@ -615,6 +617,11 @@ export async function POST(request: Request) {
   // recobra em 30 dias, então vem sempre do plano, nunca do cliente.
   const cicloAsaas = planoRow.ciclo === "trimestral" ? "QUARTERLY" : "MONTHLY";
 
+  // UTMs vêm só do cookie gravado pelo proxy.ts (último link com UTM, 30
+  // dias) — nunca do corpo. Independentes de afiliada, indicação e do menu
+  // "como ficou sabendo": nada acima é afetado por elas.
+  const utm = lerUtm(undefined, await cookies());
+
   // 1) Grava o pedido com status 'iniciado' (service role, ignora RLS).
   const dadosJson = {
     pessoais,
@@ -634,6 +641,7 @@ export async function POST(request: Request) {
       afiliado_id: afiliadoId,
       origem,
       origem_detalhe: origemDetalhe,
+      ...colunasUtm(utm),
       status: "iniciado",
       dados_json: dadosJson,
     })
