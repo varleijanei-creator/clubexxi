@@ -17,6 +17,12 @@ import type { createServiceClient } from "@/lib/supabase/server";
  *   sendo gravada pela ativar_membro() e paga por Pix, como hoje.
  * - Assinatura MANUAL não passa por aqui (não existe no Asaas).
  *
+ * Quem cria a assinatura com o split devolvido aqui grava o mesmo array em
+ * pedidos.dados_json.split, com fixedValue como NÚMERO JSON (18.00), nunca
+ * string ("18.00"): a ativar_membro() só reconhece o split se
+ * jsonb_typeof(fixedValue) = 'number'. String vira "sem split" em silêncio e
+ * a comissão sai pendente/Pix — a afiliada receberia em dobro.
+ *
  * Só no servidor: recebe o cliente de service role, que ignora a RLS.
  */
 
