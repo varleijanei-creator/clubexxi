@@ -44,7 +44,14 @@
 .palco{
   position:relative; z-index:2; flex:1 1 auto; min-height:0;
   display:grid; place-items:center;
+  /* trilho do tamanho do palco: sem isso a linha do grid cresce até a
+     altura dos cartões e a logo desce, encostando na legenda. */
+  grid-template:minmax(0,1fr) / minmax(0,1fr);
+  container-type:size;
 }
+/* cartões e estrelas medem pela altura real do palco (cqh), pra o
+   cartão do centro caber inteiro mesmo com a legenda mais alta. */
+.slide,.estrela{ --larg:min(48svh, 92vw, 420px, 62cqh) }
 
 .slide{
   grid-area:1/1; width:var(--larg);
@@ -106,7 +113,9 @@
 .legenda{
   position:relative; z-index:3; flex:0 0 auto;
   display:flex; flex-direction:column; align-items:center;
-  padding:1.5rem 1.25rem 1.5rem;
+  /* o respiro embaixo tira o texto do rodapé da tela; a animação
+     acima encolhe junto, sem sobrepor. */
+  padding:1.5rem 1.25rem max(1.5rem, 12svh);
   background:linear-gradient(to top,
     rgba(255,253,246,.95) 20%, rgba(255,253,246,.8) 55%, rgba(255,253,246,0) 100%);
 }
@@ -138,9 +147,6 @@
 @keyframes sobe { from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:translateY(0)} }
 
 @media (max-width:640px){
-  /* no celular a legenda sobe: o respiro embaixo tira o texto do rodapé
-     da tela e a animação acima encolhe junto, sem sobrepor. */
-  .legenda{ padding-bottom:max(1.5rem, 12svh) }
   .slide{ padding:4px 4px 12px }
   .estrela{ width:20px }
 }
