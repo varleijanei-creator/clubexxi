@@ -40,7 +40,7 @@ export default async function PaginaOrigem({
           </h1>
           <p className="text-xs text-[var(--c21-tinta-suave)]">
             Assinaturas pagas, pela data do pedido. UTM = último link com UTM
-            clicado em até 30 dias. Rastreio a partir de 24/09/2026.
+            clicado em até 30 dias. Rastreio a partir de 25/09/2026, 13h.
           </p>
         </div>
 
@@ -80,13 +80,13 @@ export default async function PaginaOrigem({
           rotulo={ROTULO_SEM_UTM}
           valor={String(resumo.semUtm)}
           cor="var(--c21-laranja)"
-          nota="depois de 24/09, sem UTM"
+          nota="desde 25/09 13h, sem UTM"
         />
         <CartaoMetrica
           rotulo="Antes do rastreio"
           valor={String(resumo.antes)}
           cor="var(--c21-tinta-suave)"
-          nota="até 23/09 — sem dado de UTM"
+          nota="até 25/09 13h — sem dado de UTM"
         />
       </div>
 

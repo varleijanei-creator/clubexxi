@@ -15,7 +15,7 @@ import { rotularOrigem } from "@/lib/admin/origem";
  * Cada pedido cai em exatamente um de três grupos, pra que "direto" não
  * fique inflado com quem assinou antes de existir rastreio:
  * - antes do rastreio: criado antes de INICIO_RASTREIO_UTM — não dá pra
- *   saber se veio de link, a coluna nem existia;
+ *   saber se veio de link, o site ainda não gravava UTM;
  * - direto / sem UTM: criado depois, sem nenhuma utm_*;
  * - com UTM: pelo menos uma utm_* preenchida.
  *
@@ -23,15 +23,14 @@ import { rotularOrigem } from "@/lib/admin/origem";
  */
 
 /**
- * Quando o rastreio de UTM começou a valer.
- *
- * PENDENTE NO DEPLOY: hoje é 24/09 00:00 (migration utm_pedidos), mas o
- * site só grava UTM depois que a branch afiliadas-split for pro ar. Pedido
- * pago entre esta data e o deploy cai em "direto / sem UTM" sem ser. Ao
- * fazer o deploy, trocar pela data e hora dele (com -03:00) e ajustar os
- * textos "24/09" / "até 23/09" em ROTULO_ANTES e em app/admin/(protegido)/origem/page.tsx.
+ * Quando o rastreio de UTM começou a valer: deploy da afiliadas-split, em
+ * 25/09/2026, arredondado pra próxima hora cheia. As colunas pedidos.utm_*
+ * existem desde 24/09, mas o site só passou a gravá-las no deploy — usar a
+ * data da migration jogaria em "direto" quem assinou no intervalo.
+ * Se mudar, ajustar também ROTULO_ANTES e os textos de
+ * app/admin/(protegido)/origem/page.tsx.
  */
-export const INICIO_RASTREIO_UTM = "2026-09-24T00:00:00-03:00";
+export const INICIO_RASTREIO_UTM = "2026-09-25T13:00:00-03:00";
 
 /** Primeira edição do clube — início padrão do filtro. */
 const DATA_INICIAL = "2026-09-01";
@@ -42,7 +41,7 @@ const CHAVE_FALTOU = "__faltou_no_link__";
 const CHAVE_MENU_VAZIO = "__menu_vazio__";
 
 export const ROTULO_SEM_UTM = "Direto / sem UTM";
-export const ROTULO_ANTES = "Antes do rastreio (até 23/09)";
+export const ROTULO_ANTES = "Antes do rastreio (até 25/09, 13h)";
 const ROTULO_FALTOU = "Link sem este campo";
 
 type Grupo = "com_utm" | "sem_utm" | "antes";
