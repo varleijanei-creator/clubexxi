@@ -1,5 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import type { QuebraLinha } from "@/lib/admin/metricas";
 import { rotularOrigem } from "@/lib/admin/origem";
 
 /**
@@ -12,12 +11,25 @@ import { rotularOrigem } from "@/lib/admin/origem";
  * (criado_em): pedidos não têm data de pagamento, e a diferença entre os
  * dois é de minutos.
  *
- * Cada pedido cai em exatamente um de três grupos, pra que "direto" não
- * fique inflado com quem assinou antes de existir rastreio:
- * - antes do rastreio: criado antes de INICIO_RASTREIO_UTM — não dá pra
- *   saber se veio de link, o site ainda não gravava UTM;
- * - direto / sem UTM: criado depois, sem nenhuma utm_*;
- * - com UTM: pelo menos uma utm_* preenchida.
+ * Mais as assinaturas MANUAL sem pedido PAGO (ativadas fora do site), pelo
+ * assinaturas.criado_em — sem elas o total não bate com as ativas. Algumas
+ * têm pedido ligado que ficou em 'iniciado' (a pessoa preencheu o
+ * formulário e pagou por fora): contam como manual nas UTMs, mas a
+ * resposta do menu desse pedido é usada na coluna do menu.
+ *
+ * Cada item cai em exatamente um grupo, pra que "direto" não fique inflado:
+ * - antes do rastreio: pedido criado antes de INICIO_RASTREIO_UTM — não dá
+ *   pra saber se veio de link, o site ainda não gravava UTM;
+ * - direto / sem UTM: pedido criado depois, sem nenhuma utm_*;
+ * - com UTM: pelo menos uma utm_* preenchida;
+ * - manual / fora do site: assinatura MANUAL sem pedido pago ligado.
+ *
+ * Situação (ativa / suspensa / cancelada): pedido -> assinatura pelo
+ * assinatura_eventos (pedido_id + assinatura_id, gravados pela
+ * ativar_membro()). Não há outro vínculo confiável: assinaturas não tem
+ * pedido_id, e casar por e-mail erra quando a mesma pessoa tem mais de uma
+ * assinatura. Pedido sem evento (os de 16/09, anteriores à tabela de
+ * eventos) aparece como "sem vínculo" em vez de um palpite.
  *
  * Service role, só no servidor (mesmo motivo de lib/admin/metricas.ts).
  */
@@ -37,16 +49,33 @@ const DATA_INICIAL = "2026-09-01";
 
 const CHAVE_SEM_UTM = "__sem_utm__";
 const CHAVE_ANTES = "__antes_rastreio__";
+const CHAVE_MANUAL = "__manual__";
 const CHAVE_FALTOU = "__faltou_no_link__";
 const CHAVE_MENU_VAZIO = "__menu_vazio__";
 
 export const ROTULO_SEM_UTM = "Direto / sem UTM";
 export const ROTULO_ANTES = "Antes do rastreio (até 25/09, 14h)";
+export const ROTULO_MANUAL = "Manual / fora do site";
 const ROTULO_FALTOU = "Link sem este campo";
 
-type Grupo = "com_utm" | "sem_utm" | "antes";
+/** Rótulos que não são um canal de verdade — a página mostra mais apagado. */
+export const ROTULOS_ESPECIAIS = new Set([ROTULO_SEM_UTM, ROTULO_ANTES, ROTULO_MANUAL]);
+
+type Grupo = "com_utm" | "sem_utm" | "antes" | "manual";
+type Situacao = "ativa" | "suspensa" | "cancelada" | "sem_vinculo";
+
+/** Um pedido pago ou uma assinatura manual — o que a visão conta. */
+type Item = {
+  grupo: Grupo;
+  situacao: Situacao;
+  origem: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+};
 
 type PedidoLinha = {
+  id: string;
   criado_em: string;
   origem: string | null;
   utm_source: string | null;
@@ -55,15 +84,49 @@ type PedidoLinha = {
   utm_content: string | null;
 };
 
+type EventoLinha = {
+  pedido_id: string;
+  assinatura_id: string;
+  pedido: { status: string; tipo: string; origem: string | null } | null;
+};
+
+type AssinaturaLinha = {
+  id: string;
+  status: string;
+  billing_type: string | null;
+  criado_em: string;
+};
+
 export type Periodo = { de: string; ate: string };
+
+/** Uma linha de canal: total e como está hoje cada assinatura dele. */
+export type LinhaCanal = {
+  chave: string;
+  rotulo: string;
+  total: number;
+  ativas: number;
+  suspensas: number;
+  canceladas: number;
+  semVinculo: number;
+};
 
 export type OrigemAssinaturas = {
   periodo: Periodo;
-  resumo: { total: number; comUtm: number; semUtm: number; antes: number };
-  porCampanha: QuebraLinha[];
-  porRede: QuebraLinha[];
-  porOnde: QuebraLinha[];
-  porMenu: QuebraLinha[];
+  resumo: {
+    total: number;
+    comUtm: number;
+    semUtm: number;
+    antes: number;
+    manual: number;
+    /** Ativas entre os itens da visão (respeita o período). */
+    ativas: number;
+    /** Todas as assinaturas ativas do banco, sem filtro — pra conferir. */
+    ativasNoBanco: number;
+  };
+  porCampanha: LinhaCanal[];
+  porRede: LinhaCanal[];
+  porOnde: LinhaCanal[];
+  porMenu: LinhaCanal[];
   /** Perfil (utm_campaign) nas linhas × resposta do menu nas colunas. */
   cruzamento: {
     linhas: { chave: string; rotulo: string }[];
@@ -110,111 +173,212 @@ function limitesDoPeriodo({ de, ate }: Periodo): { inicio: string; fim: string }
   };
 }
 
-function grupoDo(p: PedidoLinha, inicioRastreio: number): Grupo {
+function grupoDoPedido(p: PedidoLinha, inicioRastreio: number): Grupo {
   if (new Date(p.criado_em).getTime() < inicioRastreio) return "antes";
   const temUtm = p.utm_source || p.utm_medium || p.utm_campaign || p.utm_content;
   return temUtm ? "com_utm" : "sem_utm";
 }
 
-/** Chave de uma dimensão UTM pro pedido, já considerando o grupo. */
+function situacaoDe(status: string | undefined): Situacao {
+  if (status === "ativa" || status === "suspensa" || status === "cancelada") return status;
+  return "sem_vinculo";
+}
+
+/** Chave de uma dimensão UTM pro item, já considerando o grupo. */
 function chaveUtm(
-  p: PedidoLinha,
-  grupo: Grupo,
+  item: Item,
   coluna: "utm_source" | "utm_medium" | "utm_campaign",
 ): string {
-  if (grupo === "antes") return CHAVE_ANTES;
-  if (grupo === "sem_utm") return CHAVE_SEM_UTM;
-  return p[coluna] ?? CHAVE_FALTOU;
+  if (item.grupo === "manual") return CHAVE_MANUAL;
+  if (item.grupo === "antes") return CHAVE_ANTES;
+  if (item.grupo === "sem_utm") return CHAVE_SEM_UTM;
+  return item[coluna] ?? CHAVE_FALTOU;
 }
 
 function rotularChaveUtm(chave: string): string {
+  if (chave === CHAVE_MANUAL) return ROTULO_MANUAL;
   if (chave === CHAVE_ANTES) return ROTULO_ANTES;
   if (chave === CHAVE_SEM_UTM) return ROTULO_SEM_UTM;
   if (chave === CHAVE_FALTOU) return ROTULO_FALTOU;
   return chave; // valor da UTM já normalizado (minúsculas, sem acento)
 }
 
-/** Valores reais primeiro (maior contagem antes); os grupos especiais no fim. */
+/**
+ * Manual com pedido ligado usa a resposta do menu daquele pedido; manual
+ * sem pedido nenhum não passou pelo menu e fica numa coluna própria.
+ */
+function chaveMenu(item: Item): string {
+  if (item.grupo === "manual" && !item.origem) return CHAVE_MANUAL;
+  return item.origem ?? CHAVE_MENU_VAZIO;
+}
+
+function rotularMenu(chave: string): string {
+  if (chave === CHAVE_MANUAL) return ROTULO_MANUAL;
+  return rotularOrigem(chave === CHAVE_MENU_VAZIO ? null : chave);
+}
+
+/** Valores reais primeiro (maior total antes); os grupos especiais no fim. */
 const ORDEM_ESPECIAIS: Record<string, number> = {
   [CHAVE_FALTOU]: 1,
+  [CHAVE_MENU_VAZIO]: 1,
   [CHAVE_SEM_UTM]: 2,
   [CHAVE_ANTES]: 3,
-  [CHAVE_MENU_VAZIO]: 1,
+  [CHAVE_MANUAL]: 4,
 };
 
-function ordenar<T extends { chave: string; entradas: number }>(linhas: T[]): T[] {
+function ordenar(linhas: LinhaCanal[]): LinhaCanal[] {
   return linhas.sort((a, b) => {
     const pa = ORDEM_ESPECIAIS[a.chave] ?? 0;
     const pb = ORDEM_ESPECIAIS[b.chave] ?? 0;
     if (pa !== pb) return pa - pb;
-    return b.entradas - a.entradas || a.chave.localeCompare(b.chave);
+    return b.total - a.total || a.chave.localeCompare(b.chave);
   });
 }
 
+const CAMPO_SITUACAO = {
+  ativa: "ativas",
+  suspensa: "suspensas",
+  cancelada: "canceladas",
+  sem_vinculo: "semVinculo",
+} as const;
+
 function contar(
-  pedidos: PedidoLinha[],
-  chaveDe: (p: PedidoLinha) => string,
+  itens: Item[],
+  chaveDe: (item: Item) => string,
   rotular: (chave: string) => string,
-): QuebraLinha[] {
-  const contagem = new Map<string, number>();
-  for (const p of pedidos) {
-    const chave = chaveDe(p);
-    contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+): LinhaCanal[] {
+  const linhas = new Map<string, LinhaCanal>();
+  for (const item of itens) {
+    const chave = chaveDe(item);
+    let linha = linhas.get(chave);
+    if (!linha) {
+      linha = {
+        chave,
+        rotulo: rotular(chave),
+        total: 0,
+        ativas: 0,
+        suspensas: 0,
+        canceladas: 0,
+        semVinculo: 0,
+      };
+      linhas.set(chave, linha);
+    }
+    linha.total += 1;
+    linha[CAMPO_SITUACAO[item.situacao]] += 1;
   }
-  return ordenar(
-    [...contagem.entries()].map(([chave, entradas]) => ({
-      chave,
-      rotulo: rotular(chave),
-      entradas,
-    })),
-  );
-}
-
-function chaveMenu(p: PedidoLinha): string {
-  return p.origem ?? CHAVE_MENU_VAZIO;
-}
-
-function rotularMenu(chave: string): string {
-  return rotularOrigem(chave === CHAVE_MENU_VAZIO ? null : chave);
+  return ordenar([...linhas.values()]);
 }
 
 export async function buscarOrigemAssinaturas(periodo: Periodo): Promise<OrigemAssinaturas> {
   const supabase = createServiceClient();
   const { inicio, fim } = limitesDoPeriodo(periodo);
 
-  const { data, error } = await supabase
-    .from("pedidos")
-    .select("criado_em, origem, utm_source, utm_medium, utm_campaign, utm_content")
-    .eq("status", "pago")
-    .eq("tipo", "assinatura")
-    .gte("criado_em", inicio)
-    .lt("criado_em", fim);
+  // Eventos e assinaturas vêm inteiros (sem filtro de período): são poucas
+  // centenas de linhas, e o vínculo pedido -> assinatura precisa enxergar
+  // tudo pra não chamar de "manual" uma assinatura de pedido fora do período.
+  const [pedidosRes, eventosRes, assinaturasRes] = await Promise.all([
+    supabase
+      .from("pedidos")
+      .select("id, criado_em, origem, utm_source, utm_medium, utm_campaign, utm_content")
+      .eq("status", "pago")
+      .eq("tipo", "assinatura")
+      .gte("criado_em", inicio)
+      .lt("criado_em", fim),
+    supabase
+      .from("assinatura_eventos")
+      .select("pedido_id, assinatura_id, pedido:pedidos(status, tipo, origem)")
+      .not("pedido_id", "is", null)
+      .not("assinatura_id", "is", null)
+      .order("created_at", { ascending: true }),
+    supabase.from("assinaturas").select("id, status, billing_type, criado_em"),
+  ]);
 
-  if (error) {
-    throw new Error(`[origem-assinaturas] falha ao ler pedidos: ${error.message}`);
+  for (const [rotulo, res] of [
+    ["pedidos", pedidosRes],
+    ["eventos", eventosRes],
+    ["assinaturas", assinaturasRes],
+  ] as const) {
+    if (res.error) {
+      throw new Error(`[origem-assinaturas] falha ao ler ${rotulo}: ${res.error.message}`);
+    }
   }
 
-  const pedidos = (data ?? []) as PedidoLinha[];
+  const pedidos = (pedidosRes.data ?? []) as PedidoLinha[];
+  const assinaturas = (assinaturasRes.data ?? []) as AssinaturaLinha[];
+  const statusPorAssinatura = new Map(assinaturas.map((a) => [a.id, a.status]));
+
+  // Pedido -> assinatura: vale o evento mais recente (ordem crescente acima,
+  // o último sobrescreve). Hoje nenhum pedido tem mais de uma assinatura.
+  const assinaturaDoPedido = new Map<string, string>();
+  const assinaturasComPedidoPago = new Set<string>();
+  // Resposta do menu do pedido não pago ligado a uma assinatura (manual).
+  const menuDaAssinatura = new Map<string, string>();
+  for (const e of (eventosRes.data ?? []) as unknown as EventoLinha[]) {
+    assinaturaDoPedido.set(e.pedido_id, e.assinatura_id);
+    if (e.pedido?.status === "pago" && e.pedido.tipo === "assinatura") {
+      assinaturasComPedidoPago.add(e.assinatura_id);
+    } else if (e.pedido?.origem) {
+      menuDaAssinatura.set(e.assinatura_id, e.pedido.origem);
+    }
+  }
+
   const inicioRastreio = new Date(INICIO_RASTREIO_UTM).getTime();
-  const grupos = new Map(pedidos.map((p) => [p, grupoDo(p, inicioRastreio)]));
-  const grupo = (p: PedidoLinha) => grupos.get(p)!;
+  const itens: Item[] = pedidos.map((p) => {
+    const assinaturaId = assinaturaDoPedido.get(p.id);
+    return {
+      grupo: grupoDoPedido(p, inicioRastreio),
+      situacao: situacaoDe(assinaturaId ? statusPorAssinatura.get(assinaturaId) : undefined),
+      origem: p.origem,
+      utm_source: p.utm_source,
+      utm_medium: p.utm_medium,
+      utm_campaign: p.utm_campaign,
+    };
+  });
 
-  const resumo = { total: pedidos.length, comUtm: 0, semUtm: 0, antes: 0 };
-  for (const p of pedidos) {
-    const g = grupo(p);
-    if (g === "com_utm") resumo.comUtm += 1;
-    else if (g === "sem_utm") resumo.semUtm += 1;
-    else resumo.antes += 1;
+  const inicioMs = new Date(inicio).getTime();
+  const fimMs = new Date(fim).getTime();
+  for (const a of assinaturas) {
+    if (a.billing_type !== "MANUAL" || assinaturasComPedidoPago.has(a.id)) continue;
+    const criada = new Date(a.criado_em).getTime();
+    if (criada < inicioMs || criada >= fimMs) continue;
+    itens.push({
+      grupo: "manual",
+      situacao: situacaoDe(a.status),
+      origem: menuDaAssinatura.get(a.id) ?? null,
+      utm_source: null,
+      utm_medium: null,
+      utm_campaign: null,
+    });
   }
 
-  const chaveCampanha = (p: PedidoLinha) => chaveUtm(p, grupo(p), "utm_campaign");
-  const porCampanha = contar(pedidos, chaveCampanha, rotularChaveUtm);
-  const porMenu = contar(pedidos, chaveMenu, rotularMenu);
+  const resumo = {
+    total: itens.length,
+    comUtm: 0,
+    semUtm: 0,
+    antes: 0,
+    manual: 0,
+    ativas: 0,
+    ativasNoBanco: assinaturas.filter((a) => a.status === "ativa").length,
+  };
+  const campoGrupo = {
+    com_utm: "comUtm",
+    sem_utm: "semUtm",
+    antes: "antes",
+    manual: "manual",
+  } as const;
+  for (const item of itens) {
+    resumo[campoGrupo[item.grupo]] += 1;
+    if (item.situacao === "ativa") resumo.ativas += 1;
+  }
+
+  const chaveCampanha = (item: Item) => chaveUtm(item, "utm_campaign");
+  const porCampanha = contar(itens, chaveCampanha, rotularChaveUtm);
+  const porMenu = contar(itens, chaveMenu, rotularMenu);
 
   const contagem: Record<string, Record<string, number>> = {};
-  for (const p of pedidos) {
-    const linha = chaveCampanha(p);
-    const coluna = chaveMenu(p);
+  for (const item of itens) {
+    const linha = chaveCampanha(item);
+    const coluna = chaveMenu(item);
     contagem[linha] ??= {};
     contagem[linha][coluna] = (contagem[linha][coluna] ?? 0) + 1;
   }
@@ -223,11 +387,11 @@ export async function buscarOrigemAssinaturas(periodo: Periodo): Promise<OrigemA
     periodo,
     resumo,
     porCampanha,
-    porRede: contar(pedidos, (p) => chaveUtm(p, grupo(p), "utm_source"), rotularChaveUtm),
-    porOnde: contar(pedidos, (p) => chaveUtm(p, grupo(p), "utm_medium"), rotularChaveUtm),
+    porRede: contar(itens, (item) => chaveUtm(item, "utm_source"), rotularChaveUtm),
+    porOnde: contar(itens, (item) => chaveUtm(item, "utm_medium"), rotularChaveUtm),
     porMenu,
     cruzamento: {
-      // mesma ordem das tabelas acima
+      // mesma ordem das tabelas
       linhas: porCampanha.map(({ chave, rotulo }) => ({ chave, rotulo })),
       colunas: porMenu.map(({ chave, rotulo }) => ({ chave, rotulo })),
       contagem,

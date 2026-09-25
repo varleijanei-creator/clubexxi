@@ -1,14 +1,17 @@
 import {
   buscarOrigemAssinaturas,
   normalizarPeriodo,
-  ROTULO_ANTES,
+  ROTULO_MANUAL,
   ROTULO_SEM_UTM,
+  ROTULOS_ESPECIAIS,
 } from "@/lib/admin/origem-assinaturas";
+import { LINKS_DIVULGACAO } from "@/lib/admin/links-divulgacao";
 import { paramTexto } from "@/lib/searchParams";
 import CartaoMetrica from "@/components/admin/CartaoMetrica";
-import TabelaQuebra from "@/components/admin/TabelaQuebra";
+import CopiarLink from "@/components/admin/CopiarLink";
+import TabelaCanal from "@/components/admin/TabelaCanal";
 
-const VAZIO = "Nenhuma assinatura paga no período.";
+const VAZIO = "Nenhuma assinatura no período.";
 
 function dataBr(iso: string): string {
   const [ano, mes, dia] = iso.split("-");
@@ -16,8 +19,9 @@ function dataBr(iso: string): string {
 }
 
 // Origem das assinaturas: UTMs do último link (pedidos.utm_*) lado a lado
-// com a resposta do menu "como ficou sabendo" (pedidos.origem). Regras de
-// agrupamento em lib/admin/origem-assinaturas.ts.
+// com a resposta do menu "como ficou sabendo" (pedidos.origem), mais as
+// assinaturas manuais. Regras de agrupamento e de situação (ativa /
+// cancelada) em lib/admin/origem-assinaturas.ts.
 export default async function PaginaOrigem({
   searchParams,
 }: {
@@ -39,8 +43,9 @@ export default async function PaginaOrigem({
             Origem das assinaturas
           </h1>
           <p className="text-xs text-[var(--c21-tinta-suave)]">
-            Assinaturas pagas, pela data do pedido. UTM = último link com UTM
-            clicado em até 30 dias. Rastreio a partir de 25/09/2026, 14h.
+            Pedidos pagos no site, pela data do pedido, mais as assinaturas
+            manuais, pela data de cadastro. UTM = último link com UTM clicado
+            em até 30 dias. Rastreio a partir de 25/09/2026, 14h.
           </p>
         </div>
 
@@ -63,12 +68,12 @@ export default async function PaginaOrigem({
         </form>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <CartaoMetrica
-          rotulo="Assinaturas pagas"
+          rotulo="Assinaturas"
           valor={String(resumo.total)}
           cor="var(--c21-tinta)"
-          nota={`${dataBr(periodo.de)} a ${dataBr(periodo.ate)}`}
+          nota={`${resumo.ativas} ativas · ${dataBr(periodo.de)} a ${dataBr(periodo.ate)}`}
         />
         <CartaoMetrica
           rotulo="Com UTM"
@@ -88,16 +93,46 @@ export default async function PaginaOrigem({
           cor="var(--c21-tinta-suave)"
           nota="até 25/09 14h — sem dado de UTM"
         />
+        <CartaoMetrica
+          rotulo={ROTULO_MANUAL}
+          valor={String(resumo.manual)}
+          cor="var(--c21-tinta-suave)"
+          nota="assinatura MANUAL, sem pedido pago no site"
+        />
       </div>
 
+      <p className="-mt-3 text-xs text-[var(--c21-tinta-suave)]">
+        Conferência: {resumo.ativas} ativas nesta visão · {resumo.ativasNoBanco} assinaturas
+        ativas no banco (todas as datas).
+        {resumo.ativas !== resumo.ativasNoBanco &&
+          " A diferença vem do período escolhido ou de assinatura ativa sem pedido pago que não é MANUAL."}
+        {" "}Situação (ativa/cancelada) é a de hoje, não a da data do pedido.
+      </p>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <TabelaQuebra titulo="Perfil (utm_campaign)" linhas={dados.porCampanha} vazio={VAZIO} />
-        <TabelaQuebra titulo="Rede (utm_source)" linhas={dados.porRede} vazio={VAZIO} />
-        <TabelaQuebra titulo="Onde (utm_medium)" linhas={dados.porOnde} vazio={VAZIO} />
-        <TabelaQuebra
+        <TabelaCanal
+          titulo="Perfil (utm_campaign)"
+          linhas={dados.porCampanha}
+          vazio={VAZIO}
+          especiais={ROTULOS_ESPECIAIS}
+        />
+        <TabelaCanal
+          titulo="Rede (utm_source)"
+          linhas={dados.porRede}
+          vazio={VAZIO}
+          especiais={ROTULOS_ESPECIAIS}
+        />
+        <TabelaCanal
+          titulo="Onde (utm_medium)"
+          linhas={dados.porOnde}
+          vazio={VAZIO}
+          especiais={ROTULOS_ESPECIAIS}
+        />
+        <TabelaCanal
           titulo="Menu “como ficou sabendo”"
           linhas={dados.porMenu}
           vazio={VAZIO}
+          especiais={ROTULOS_ESPECIAIS}
         />
       </div>
 
@@ -132,9 +167,7 @@ export default async function PaginaOrigem({
                   >
                     <td
                       className={`py-2 pr-4 whitespace-nowrap ${
-                        l.rotulo === ROTULO_SEM_UTM || l.rotulo === ROTULO_ANTES
-                          ? "text-[var(--c21-tinta-suave)]"
-                          : ""
+                        ROTULOS_ESPECIAIS.has(l.rotulo) ? "text-[var(--c21-tinta-suave)]" : ""
                       }`}
                     >
                       {l.rotulo}
@@ -158,6 +191,20 @@ export default async function PaginaOrigem({
             </table>
           </div>
         )}
+      </div>
+
+      <div className="rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
+        <h2 className="mb-1 text-sm font-semibold text-[var(--c21-tinta)]">
+          Links de divulgação
+        </h2>
+        <p className="mb-3 text-xs text-[var(--c21-tinta-suave)]">
+          Use um link por lugar: é ele que diz de onde veio cada assinatura.
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {LINKS_DIVULGACAO.map((link) => (
+            <CopiarLink key={link.chave} rotulo={link.rotulo} url={link.url} />
+          ))}
+        </div>
       </div>
     </div>
   );
