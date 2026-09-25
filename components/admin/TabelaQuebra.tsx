@@ -4,9 +4,11 @@ import type { QuebraLinha } from "@/lib/admin/metricas";
 export default function TabelaQuebra({
   titulo,
   linhas,
+  vazio = "Nenhuma entrada neste mês.",
 }: {
   titulo: string;
   linhas: QuebraLinha[];
+  vazio?: string;
 }) {
   const total = linhas.reduce((soma, l) => soma + l.entradas, 0);
   const maximo = Math.max(1, ...linhas.map((l) => l.entradas));
@@ -15,9 +17,7 @@ export default function TabelaQuebra({
     <div className="flex flex-col gap-3 rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)] p-4">
       <h2 className="text-sm font-semibold text-[var(--c21-tinta)]">{titulo}</h2>
       {linhas.length === 0 ? (
-        <p className="text-sm text-[var(--c21-tinta-suave)]">
-          Nenhuma entrada neste mês.
-        </p>
+        <p className="text-sm text-[var(--c21-tinta-suave)]">{vazio}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {linhas.map((l) => (

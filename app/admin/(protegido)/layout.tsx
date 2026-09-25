@@ -5,12 +5,14 @@ import { ehAdmin } from "@/lib/auth/autorizacao";
 import { usuarioAtual } from "@/lib/auth/usuario-atual";
 import SairBotao from "@/components/SairBotao";
 
-// As cinco rotas do spec-painel-admin.md — todas construídas.
+// As cinco rotas do spec-painel-admin.md — todas construídas —, mais a
+// visão de origem por UTM (lib/admin/origem-assinaturas.ts).
 const NAV = [
   { href: "/admin", rotulo: "Painel" },
   { href: "/admin/membras", rotulo: "Membras" },
   { href: "/admin/afiliadas", rotulo: "Afiliadas" },
   { href: "/admin/produtos", rotulo: "Produtos" },
+  { href: "/admin/origem", rotulo: "Origem" },
 ];
 
 /**
