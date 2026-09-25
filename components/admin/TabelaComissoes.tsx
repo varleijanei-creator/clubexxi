@@ -4,6 +4,9 @@ import { formatarDataAdmin, formatarCompetencia } from "@/lib/admin/formato";
 import SeloComissao from "./SeloComissao";
 import BotaoMarcarPaga from "./BotaoMarcarPaga";
 
+// Valores aceitos por comissoes_forma_pagamento_check.
+const ROTULOS_FORMA: Record<string, string> = { pix: "Pix", split: "Split" };
+
 /** Linhas de comissão de uma afiliada (ou de um grupo do mês) — spec-painel-admin.md, Tela 3. */
 export default function TabelaComissoes({
   linhas,
@@ -20,7 +23,7 @@ export default function TabelaComissoes({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse text-sm">
+      <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--c21-linha)] text-left text-xs text-[var(--c21-tinta-suave)]">
             {mostrarCompetencia && <th className="px-3 py-2 font-medium">Competência</th>}
@@ -28,6 +31,7 @@ export default function TabelaComissoes({
             <th className="px-3 py-2 font-medium">Base</th>
             <th className="px-3 py-2 font-medium">%</th>
             <th className="px-3 py-2 font-medium">Comissão</th>
+            <th className="px-3 py-2 font-medium">Forma</th>
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium">Paga em</th>
             <th className="px-3 py-2 font-medium" />
@@ -45,14 +49,20 @@ export default function TabelaComissoes({
               <td className="px-3 py-2 tabular-nums">{formatarValor(c.valorBase)}</td>
               <td className="px-3 py-2 tabular-nums">{c.percentual}%</td>
               <td className="px-3 py-2 tabular-nums font-medium">{formatarValor(c.valorComissao)}</td>
+              <td className="px-3 py-2">{ROTULOS_FORMA[c.formaPagamento] ?? c.formaPagamento}</td>
               <td className="px-3 py-2">
-                <SeloComissao status={c.status} />
+                <SeloComissao status={c.status} formaPagamento={c.formaPagamento} />
               </td>
               <td className="px-3 py-2 text-[var(--c21-tinta-suave)]">
                 {c.pagoEm ? formatarDataAdmin(c.pagoEm) : "—"}
               </td>
               <td className="px-3 py-2">
-                <BotaoMarcarPaga comissaoId={c.id} status={c.status} voltarPara={voltarPara} />
+                <BotaoMarcarPaga
+                  comissaoId={c.id}
+                  status={c.status}
+                  formaPagamento={c.formaPagamento}
+                  voltarPara={voltarPara}
+                />
               </td>
             </tr>
           ))}

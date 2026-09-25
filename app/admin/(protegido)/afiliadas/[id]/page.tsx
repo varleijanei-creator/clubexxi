@@ -7,6 +7,7 @@ import CopiarLink from "@/components/CopiarLink";
 import SeloStatus from "@/components/SeloStatus";
 import TabelaComissoes from "@/components/admin/TabelaComissoes";
 import FormEditarAfiliada from "@/components/admin/FormEditarAfiliada";
+import SeloRepasse from "@/components/admin/SeloRepasse";
 
 export default async function PaginaDetalheAfiliada({
   params,
@@ -76,6 +77,18 @@ export default async function PaginaDetalheAfiliada({
               <dd className="text-[var(--c21-tinta)]">
                 {afiliada.chavePix ?? "—"}
                 {afiliada.tipoChavePix ? ` (${afiliada.tipoChavePix})` : ""}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-[var(--c21-tinta-suave)]">Repasse</dt>
+              <dd>
+                <SeloRepasse walletId={afiliada.walletId} />
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-[var(--c21-tinta-suave)]">Wallet ID do Asaas</dt>
+              <dd className="break-all text-right font-mono text-xs text-[var(--c21-tinta)]">
+                {afiliada.walletId ?? "—"}
               </dd>
             </div>
             <div className="flex justify-between gap-4">

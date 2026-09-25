@@ -1,4 +1,5 @@
 import { criarAfiliada } from "@/lib/admin/afiliadas-acoes";
+import { EXEMPLO_WALLET_ID, PADRAO_WALLET_ID } from "@/lib/admin/wallet-id";
 
 const OPCOES_TIPO_CHAVE = [
   { valor: "", rotulo: "—" },
@@ -87,9 +88,18 @@ export default function FormNovaAfiliada() {
         </div>
         <div className={campo}>
           <label htmlFor="wallet_id" className={rotulo}>
-            Wallet ID Asaas (split, opcional)
+            Wallet ID do Asaas (vazio = Pix manual)
           </label>
-          <input id="wallet_id" name="wallet_id" className={entrada} />
+          <input
+            id="wallet_id"
+            name="wallet_id"
+            pattern={PADRAO_WALLET_ID}
+            placeholder={EXEMPLO_WALLET_ID}
+            title={`Formato ${EXEMPLO_WALLET_ID}`}
+            autoComplete="off"
+            spellCheck={false}
+            className={`${entrada} font-mono`}
+          />
         </div>
         <div className={`${campo} sm:col-span-2 lg:col-span-3`}>
           <label htmlFor="observacoes" className={rotulo}>

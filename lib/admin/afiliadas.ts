@@ -31,6 +31,8 @@ export type AfiliadaLinha = {
   ativo: boolean;
   email: string | null;
   telefone: string | null;
+  /** Preenchido = split do Asaas (quando a checkout-v2 estiver no ar); null = Pix manual. */
+  walletId: string | null;
   criadoEm: string;
   assinantesTotal: number;
   assinantesAtivos: number;
@@ -67,6 +69,7 @@ export async function buscarAfiliadas(): Promise<AfiliadaLinha[]> {
     ativo: a.ativo,
     email: a.email,
     telefone: a.telefone,
+    walletId: a.wallet_id,
     criadoEm: a.criado_em,
     assinantesTotal: contagem.get(a.id)?.total ?? 0,
     assinantesAtivos: contagem.get(a.id)?.ativos ?? 0,

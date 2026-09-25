@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { usuarioAtual } from "@/lib/auth/usuario-atual";
 import { ehAdmin } from "@/lib/auth/autorizacao";
+import { EXEMPLO_WALLET_ID, WALLET_ID_VALIDO } from "@/lib/admin/wallet-id";
 
 /**
  * Escritas da Tela 3 (Afiliadas). Server Actions, não Route Handler: um
@@ -29,6 +30,15 @@ function texto(formData: FormData, campo: string): string {
 
 const CODIGO_VALIDO = /^[a-z0-9-]+$/;
 
+const ERRO_WALLET = `Wallet ID do Asaas inválido — é um código no formato ${EXEMPLO_WALLET_ID}. Deixe vazio pra repasse por Pix.`;
+
+/** Vazio = sem split (null). Preenchido precisa ser UUID; volta em minúsculas. */
+function lerWalletId(formData: FormData): { ok: true; valor: string | null } | { ok: false } {
+  const valor = texto(formData, "wallet_id").toLowerCase();
+  if (!valor) return { ok: true, valor: null };
+  return WALLET_ID_VALIDO.test(valor) ? { ok: true, valor } : { ok: false };
+}
+
 export async function criarAfiliada(formData: FormData): Promise<void> {
   await exigirAdmin();
 
@@ -39,7 +49,7 @@ export async function criarAfiliada(formData: FormData): Promise<void> {
   const cpfCnpj = texto(formData, "cpf_cnpj");
   const chavePix = texto(formData, "chave_pix");
   const tipoChavePix = texto(formData, "tipo_chave_pix");
-  const walletId = texto(formData, "wallet_id");
+  const wallet = lerWalletId(formData);
   const observacoes = texto(formData, "observacoes");
   const percentualTexto = texto(formData, "percentual");
   const ativo = formData.get("ativo") === "on";
@@ -51,6 +61,7 @@ export async function criarAfiliada(formData: FormData): Promise<void> {
   if (!CODIGO_VALIDO.test(codigo)) {
     erro("Código só pode ter letras minúsculas, números e hífen — é o que vai no link.");
   }
+  if (!wallet.ok) erro(ERRO_WALLET);
 
   let percentual: number | undefined;
   if (percentualTexto) {
@@ -68,7 +79,7 @@ export async function criarAfiliada(formData: FormData): Promise<void> {
     cpf_cnpj: cpfCnpj || null,
     chave_pix: chavePix || null,
     tipo_chave_pix: tipoChavePix || null,
-    wallet_id: walletId || null,
+    wallet_id: wallet.ok ? wallet.valor : null,
     observacoes: observacoes || null,
     ativo,
     ...(percentual !== undefined ? { percentual } : {}),
@@ -94,12 +105,14 @@ export async function atualizarAfiliada(formData: FormData): Promise<void> {
   const telefone = texto(formData, "telefone");
   const cpfCnpj = texto(formData, "cpf_cnpj");
   const chavePix = texto(formData, "chave_pix");
+  const wallet = lerWalletId(formData);
   const percentualTexto = texto(formData, "percentual");
   const ativo = formData.get("ativo") === "on";
 
   const erro = (mensagem: string) => redirect(`/admin/afiliadas/${id}?erro=${encodeURIComponent(mensagem)}`);
 
   if (!nome) erro("Nome é obrigatório.");
+  if (!wallet.ok) erro(ERRO_WALLET);
 
   // Código não entra no form — não é campo desta action. Link já divulgado
   // depende dele.
@@ -119,6 +132,9 @@ export async function atualizarAfiliada(formData: FormData): Promise<void> {
       telefone: telefone || null,
       cpf_cnpj: cpfCnpj || null,
       chave_pix: chavePix || null,
+      // Só vale pra assinaturas novas: as existentes guardam o split em
+      // assinaturas.split_valor e na própria assinatura do Asaas.
+      wallet_id: wallet.ok ? wallet.valor : null,
       ativo,
       ...(percentual !== undefined ? { percentual } : {}),
     })
@@ -142,14 +158,20 @@ export async function marcarComissaoPaga(formData: FormData): Promise<void> {
 
   // Confere o status antes de mexer: comissão cancelada ou já paga não se
   // recalcula nem se reativa (regra do spec — quem cancela é a function do
-  // banco).
+  // banco). Comissão de split é repassada pelo próprio Asaas: nunca se marca
+  // à mão, mesmo que o botão seja forjado.
   const atualRes = await supabase
     .from("comissoes")
-    .select("status, observacao")
+    .select("status, observacao, forma_pagamento")
     .eq("id", comissaoId)
     .maybeSingle();
 
-  if (atualRes.error || !atualRes.data || ["cancelada", "paga"].includes(atualRes.data.status)) {
+  if (
+    atualRes.error ||
+    !atualRes.data ||
+    ["cancelada", "paga"].includes(atualRes.data.status) ||
+    atualRes.data.forma_pagamento === "split"
+  ) {
     redirect(voltarPara);
   }
 

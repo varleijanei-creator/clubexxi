@@ -1,5 +1,6 @@
 import { atualizarAfiliada } from "@/lib/admin/afiliadas-acoes";
 import type { DetalheAfiliada } from "@/lib/admin/afiliadas";
+import { EXEMPLO_WALLET_ID, PADRAO_WALLET_ID } from "@/lib/admin/wallet-id";
 
 const campo = "flex flex-col gap-1";
 const rotulo = "text-xs text-[var(--c21-tinta-suave)]";
@@ -8,8 +9,8 @@ const entrada =
 
 /**
  * Edição de afiliada — nome, e-mail, telefone, CPF/CNPJ, chave Pix,
- * percentual e status. Código de propósito fora do form: link já
- * divulgado depende dele, não editável por aqui.
+ * wallet ID do Asaas, percentual e status. Código de propósito fora do
+ * form: link já divulgado depende dele, não editável por aqui.
  */
 export default function FormEditarAfiliada({ afiliada }: { afiliada: DetalheAfiliada }) {
   return (
@@ -53,6 +54,25 @@ export default function FormEditarAfiliada({ afiliada }: { afiliada: DetalheAfil
             Chave Pix
           </label>
           <input id="edit-chave_pix" name="chave_pix" defaultValue={afiliada.chavePix ?? ""} className={entrada} />
+        </div>
+        <div className={campo}>
+          <label htmlFor="edit-wallet_id" className={rotulo}>
+            Wallet ID do Asaas (vazio = Pix manual)
+          </label>
+          <input
+            id="edit-wallet_id"
+            name="wallet_id"
+            defaultValue={afiliada.walletId ?? ""}
+            pattern={PADRAO_WALLET_ID}
+            placeholder={EXEMPLO_WALLET_ID}
+            title={`Formato ${EXEMPLO_WALLET_ID}`}
+            autoComplete="off"
+            spellCheck={false}
+            className={`${entrada} font-mono`}
+          />
+          <span className="text-xs text-[var(--c21-tinta-suave)]">
+            Vale para assinaturas novas; as que já existem continuam como foram criadas.
+          </span>
         </div>
         <div className={campo}>
           <label htmlFor="edit-percentual" className={rotulo}>

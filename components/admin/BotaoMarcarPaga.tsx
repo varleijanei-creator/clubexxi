@@ -1,16 +1,21 @@
 import { marcarComissaoPaga } from "@/lib/admin/afiliadas-acoes";
 
-/** Marca uma comissão como paga — Server Action, sem JS. Some quando já paga/cancelada. */
+/**
+ * Marca uma comissão como paga — Server Action, sem JS. Some quando já
+ * paga/cancelada e nas de split, que o Asaas repassa sozinho.
+ */
 export default function BotaoMarcarPaga({
   comissaoId,
   status,
+  formaPagamento,
   voltarPara,
 }: {
   comissaoId: string;
   status: string;
+  formaPagamento: string;
   voltarPara: string;
 }) {
-  if (status === "paga" || status === "cancelada") return null;
+  if (status === "paga" || status === "cancelada" || formaPagamento === "split") return null;
 
   return (
     <form action={marcarComissaoPaga}>

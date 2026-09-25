@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AfiliadaLinha } from "@/lib/admin/afiliadas";
 import { linkIndicacao } from "@/lib/admin/afiliadas";
 import CopiarLink from "@/components/CopiarLink";
+import SeloRepasse from "./SeloRepasse";
 
 function formatarPercentual(valor: number): string {
   return `${valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
@@ -19,10 +20,11 @@ export default function TabelaAfiliadas({ linhas }: { linhas: AfiliadaLinha[] })
 
   return (
     <div className="overflow-x-auto rounded-[var(--c21-raio-md)] border border-[var(--c21-linha)] bg-[var(--c21-papel)]">
-      <table className="w-full min-w-[820px] border-collapse text-sm">
+      <table className="w-full min-w-[960px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--c21-linha)] text-left text-xs text-[var(--c21-tinta-suave)]">
             <th className="px-4 py-3 font-medium">Nome</th>
+            <th className="px-4 py-3 font-medium">Repasse</th>
             <th className="px-4 py-3 font-medium">Link de indicação</th>
             <th className="px-4 py-3 font-medium">%</th>
             <th className="px-4 py-3 font-medium">Assinantes</th>
@@ -39,6 +41,9 @@ export default function TabelaAfiliadas({ linhas }: { linhas: AfiliadaLinha[] })
                 >
                   {a.nome}
                 </Link>
+              </td>
+              <td className="px-4 py-3">
+                <SeloRepasse walletId={a.walletId} />
               </td>
               <td className="px-4 py-3">
                 <CopiarLink link={linkIndicacao(a.codigo)} />
