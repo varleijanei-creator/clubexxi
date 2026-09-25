@@ -24,13 +24,13 @@ import { rotularOrigem } from "@/lib/admin/origem";
 
 /**
  * Quando o rastreio de UTM começou a valer: deploy da afiliadas-split, em
- * 25/09/2026, arredondado pra próxima hora cheia. As colunas pedidos.utm_*
+ * 25/09/2026, na primeira hora cheia depois do push. As colunas pedidos.utm_*
  * existem desde 24/09, mas o site só passou a gravá-las no deploy — usar a
  * data da migration jogaria em "direto" quem assinou no intervalo.
  * Se mudar, ajustar também ROTULO_ANTES e os textos de
  * app/admin/(protegido)/origem/page.tsx.
  */
-export const INICIO_RASTREIO_UTM = "2026-09-25T13:00:00-03:00";
+export const INICIO_RASTREIO_UTM = "2026-09-25T14:00:00-03:00";
 
 /** Primeira edição do clube — início padrão do filtro. */
 const DATA_INICIAL = "2026-09-01";
@@ -41,7 +41,7 @@ const CHAVE_FALTOU = "__faltou_no_link__";
 const CHAVE_MENU_VAZIO = "__menu_vazio__";
 
 export const ROTULO_SEM_UTM = "Direto / sem UTM";
-export const ROTULO_ANTES = "Antes do rastreio (até 25/09, 13h)";
+export const ROTULO_ANTES = "Antes do rastreio (até 25/09, 14h)";
 const ROTULO_FALTOU = "Link sem este campo";
 
 type Grupo = "com_utm" | "sem_utm" | "antes";
